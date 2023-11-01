@@ -81,12 +81,13 @@ diff =
 
 init : Model
 init =
-    { expected = Visible expected, actual = Visible actual, diff = Visible diff, image = Hidden dev_image_str }
+    { expected = Visible expected, actual = Visible actual, diff = Visible diff, image = Hidden "" }
 
 
 type Msg
     = ToggleContour Triforce
     | ToggleImage
+    | ChangeImageUrl String
 
 
 update : Msg -> Model -> Model
@@ -103,6 +104,9 @@ update msg model =
 
         ToggleImage ->
             { model | image = toggle model.image }
+
+        ChangeImageUrl s ->
+            { model | image = Visible s }
 
 
 path_of_visible ( v, color ) =
@@ -173,10 +177,6 @@ dev_image model =
     SvgAttr.xlinkHref (content model.image)
 
 
-dev_image_str =
-    "http://www.toulouse-chasseur-immobilier.fr/public/.Chasseur_Immobilier_Ville_Rose_-_www.domicilium.fr_s.jpg"
-
-
 svg_image model =
     if visible model.image then
         [ Svg.image [ dev_image model, SvgAttr.opacity "0.66", SvgAttr.x "0", SvgAttr.y "0", SvgAttr.width "240", SvgAttr.height "159" ] [] ]
@@ -193,6 +193,10 @@ svg_window model =
     E.el (E.padding 10 :: default_border) <| E.html <| Svg.svg svg_area (svg_image model ++ svg_contours model)
 
 
+image_url_field model =
+    EI.text default_border { text = content model.image, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelHidden "" }
+
+
 view : Model -> Html Msg
 view model =
-    E.layout [] <| E.row [] [ svg_window model, toggle_buttons ]
+    E.layout [] <| E.row [] [ svg_window model, toggle_buttons, image_url_field model ]

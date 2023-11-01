@@ -5,34 +5,51 @@ import Main exposing (Msg(..), Triforce(..), Visibility(..), content, init, upda
 import Test exposing (..)
 
 
+visibility : List (Visibility a) -> List Bool
+visibility l =
+    List.map visible l
+
+
 suite : Test
 suite =
     describe "Main logic"
-        [ describe "Init"
-            [ test "All visible at init" <|
-                \_ -> Expect.equalLists [ True, True, True ] (List.map visible [ init.expected, init.actual, init.diff ])
-            ]
-        , describe "Toggle"
-            [ test "Revert expected visibility" <|
+        [ describe "Visibility"
+            [ test "Visibility at init" <|
+                \_ -> Expect.equalLists [ True, True, True, False ] (visibility [ init.expected, init.actual, init.diff ] ++ visibility [ init.image ])
+            , test "Toggle expected visibility" <|
                 \_ ->
                     let
                         updated =
                             update (ToggleContour Expected) init
                     in
                     Expect.equal updated.expected (Hidden (content init.expected))
-            , test "Revert actual visibility" <|
+            , test "Toggle actual visibility" <|
                 \_ ->
                     let
                         updated =
                             update (ToggleContour Actual) init
                     in
                     Expect.equal updated.actual (Hidden (content init.actual))
-            , test "Revert diff visibility" <|
+            , test "Toggle diff visibility" <|
                 \_ ->
                     let
                         updated =
                             update (ToggleContour Diff) init
                     in
                     Expect.equal updated.diff (Hidden (content init.diff))
+            , test "Toggle image visibility" <|
+                \_ ->
+                    let
+                        updated =
+                            update ToggleImage init
+                    in
+                    Expect.equal updated.image (Visible (content init.image))
+            , test "Updating image url makes it visible" <|
+                \_ ->
+                    let
+                        updated =
+                            update (ChangeImageUrl "test") init
+                    in
+                    Expect.equal updated.image (Visible "test")
             ]
         ]
