@@ -1,3 +1,5 @@
+default: fmt test build
+
 build: build/index.html
 
 build/index.html: src/*.elm
