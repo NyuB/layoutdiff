@@ -18,21 +18,21 @@ suite =
                 \_ ->
                     let
                         updated =
-                            update (Toggle Expected) init
+                            update (ToggleContour Expected) init
                     in
                     Expect.equal updated.expected (Hidden (content init.expected))
             , test "Revert actual visibility" <|
                 \_ ->
                     let
                         updated =
-                            update (Toggle Actual) init
+                            update (ToggleContour Actual) init
                     in
                     Expect.equal updated.actual (Hidden (content init.actual))
             , test "Revert diff visibility" <|
                 \_ ->
                     let
                         updated =
-                            update (Toggle Diff) init
+                            update (ToggleContour Diff) init
                     in
                     Expect.equal updated.diff (Hidden (content init.diff))
             ]
