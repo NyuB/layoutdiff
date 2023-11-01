@@ -23,7 +23,7 @@ type Triforce
 
 
 type alias Contour =
-    List Contour.Point
+    List (List Contour.Point)
 
 
 type Visibility a
@@ -68,15 +68,27 @@ type alias Model =
 
 
 expected =
-    [ point 0 0, point 0 100, point 25 150, point 50 100, point 100 100, point 100 0, point 0 0 ]
+    [ base_square, diff_expected ]
 
 
 actual =
-    [ point 0 0, point 0 100, point 50 100, point 75 150, point 100 100, point 100 0, point 0 0 ]
+    [ base_square, diff_actual ]
 
 
 diff =
-    [ point 0 100, point 25 150, point 50 100, point 75 150, point 100 100 ]
+    [ diff_expected, diff_actual ]
+
+
+base_square =
+    [ point 0 0, point 0 100, point 100 100, point 100 0, point 0 0 ]
+
+
+diff_expected =
+    [ point 0 100, point 25 150, point 50 100, point 0 100 ]
+
+
+diff_actual =
+    [ point 50 100, point 75 150, point 100 100, point 50 100 ]
 
 
 init : Model
@@ -107,19 +119,6 @@ update msg model =
 
         ChangeImageUrl s ->
             { model | image = Visible s }
-
-
-path_of_visible ( v, color ) =
-    let
-        base c =
-            [ SvgAttr.stroke color, SvgAttr.fillOpacity "0.0", SvgAttr.d (Contour.d c) ]
-    in
-    case v of
-        Visible contour ->
-            Svg.path (SvgAttr.strokeOpacity "1.0" :: base contour) []
-
-        Hidden contour ->
-            Svg.path (SvgAttr.strokeOpacity "0.0" :: base contour) []
 
 
 triforce_color t =
@@ -185,8 +184,22 @@ svg_image model =
         []
 
 
+svg_path_of_visible ( v, color ) =
+    let
+        base =
+            [ SvgAttr.stroke color, SvgAttr.fillOpacity "0.0" ]
+    in
+    case v of
+        Visible contour ->
+            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "1.0", SvgAttr.d (Contour.d c) ] ++ base) []) contour
+
+        Hidden contour ->
+            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "0.0", SvgAttr.d (Contour.d c) ] ++ base) []) contour
+
+
+svg_contours : Model -> List (Svg.Svg Msg)
 svg_contours model =
-    List.map path_of_visible [ ( model.expected, "green" ), ( model.actual, "blue" ), ( model.diff, "red" ) ]
+    List.concatMap svg_path_of_visible [ ( model.expected, "green" ), ( model.actual, "blue" ), ( model.diff, "red" ) ]
 
 
 svg_window model =
