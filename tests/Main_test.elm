@@ -1,7 +1,6 @@
 module Main_test exposing (..)
 
-import Expect exposing (Expectation)
-import Fuzz exposing (Fuzzer, int, list, string)
+import Expect
 import Main exposing (Msg(..), Triforce(..), Visibility(..), content, init, update, visible)
 import Test exposing (..)
 
