@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Main exposing (Model, Msg(..), Triforce(..), Visibility(..), content, init, main, update, visible)
 
 import Browser
 import Browser.Events exposing (Visibility(..))
@@ -25,6 +25,24 @@ type alias Contour =
 type Visibility a
     = Visible a
     | Hidden a
+
+
+visible vh =
+    case vh of
+        Visible _ ->
+            True
+
+        Hidden _ ->
+            False
+
+
+content vh =
+    case vh of
+        Visible v ->
+            v
+
+        Hidden h ->
+            h
 
 
 toggle : Visibility a -> Visibility a
