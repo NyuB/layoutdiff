@@ -28,6 +28,7 @@ type Visibility a
     | Hidden a
 
 
+visible : Visibility a -> Bool
 visible vh =
     case vh of
         Visible _ ->
@@ -37,6 +38,7 @@ visible vh =
             False
 
 
+content : Visibility a -> a
 content vh =
     case vh of
         Visible v ->
@@ -64,26 +66,32 @@ type alias Model =
     }
 
 
+expected : Contour
 expected =
     [ base_square, diff_expected ]
 
 
+actual : Contour
 actual =
     [ base_square, diff_actual ]
 
 
+diff : Contour
 diff =
     [ diff_expected, diff_actual ]
 
 
+base_square : List Contour.Point
 base_square =
     [ point 0 0, point 0 100, point 100 100, point 100 0, point 0 0 ]
 
 
+diff_expected : List Contour.Point
 diff_expected =
     [ point 0 100, point 25 150, point 50 100, point 0 100 ]
 
 
+diff_actual : List Contour.Point
 diff_actual =
     [ point 50 100, point 75 150, point 100 100, point 50 100 ]
 
@@ -118,6 +126,7 @@ update msg model =
             { model | image = Visible s }
 
 
+triforce_color : Triforce -> E.Color
 triforce_color t =
     case t of
         Expected ->
@@ -130,6 +139,7 @@ triforce_color t =
             E.rgb255 255 0 0
 
 
+triforce_label : Triforce -> String
 triforce_label t =
     case t of
         Expected ->
@@ -142,17 +152,19 @@ triforce_label t =
             "Diff"
 
 
-default_border =
+default_border_attributes : List (E.Attribute msg)
+default_border_attributes =
     [ EB.width 2, EB.rounded 5 ]
 
 
 toggle_contour_button : Triforce -> E.Element Msg
 toggle_contour_button t =
-    EI.button ([ EB.color (triforce_color t) ] ++ default_border) { onPress = Just (ToggleContour t), label = E.text (triforce_label t) }
+    EI.button ([ EB.color (triforce_color t) ] ++ default_border_attributes) { onPress = Just (ToggleContour t), label = E.text (triforce_label t) }
 
 
+toggle_image_button : E.Element Msg
 toggle_image_button =
-    EI.button ([ EB.color (E.rgb255 0 0 0) ] ++ default_border) { onPress = Just ToggleImage, label = E.text "Image" }
+    EI.button ([ EB.color (E.rgb255 0 0 0) ] ++ default_border_attributes) { onPress = Just ToggleImage, label = E.text "Image" }
 
 
 toggle_buttons : E.Element Msg
@@ -165,22 +177,26 @@ toggle_buttons =
         ]
 
 
+svg_area : List (Svg.Attribute msg)
 svg_area =
     [ SvgAttr.width "500", SvgAttr.height "500", SvgAttr.viewBox "-1 -1 500 500" ]
 
 
-dev_image model =
+svg_image_link : { a | image : Visibility String } -> Svg.Attribute msg
+svg_image_link model =
     SvgAttr.xlinkHref (content model.image)
 
 
+svg_image : Model -> List (Svg.Svg msg)
 svg_image model =
     if visible model.image then
-        [ Svg.image [ dev_image model, SvgAttr.opacity "0.66", SvgAttr.x "0", SvgAttr.y "0", SvgAttr.width "240", SvgAttr.height "159" ] [] ]
+        [ Svg.image [ svg_image_link model, SvgAttr.opacity "0.66", SvgAttr.x "0", SvgAttr.y "0", SvgAttr.width "240", SvgAttr.height "159" ] [] ]
 
     else
         []
 
 
+svg_path_of_visible : ( Visibility Contour, String ) -> List (Svg.Svg msg)
 svg_path_of_visible ( v, color ) =
     let
         base =
@@ -199,13 +215,14 @@ svg_contours model =
     List.concatMap svg_path_of_visible [ ( model.expected, "green" ), ( model.actual, "blue" ), ( model.diff, "red" ) ]
 
 
+svg_window : Model -> E.Element Msg
 svg_window model =
-    E.el (E.padding 10 :: default_border) <| E.html <| Svg.svg svg_area (svg_image model ++ svg_contours model)
+    E.el (E.padding 10 :: default_border_attributes) <| E.html <| Svg.svg svg_area (svg_image model ++ svg_contours model)
 
 
 image_url_field : Model -> E.Element Msg
 image_url_field model =
-    EI.text default_border { text = content model.image, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
+    EI.text default_border_attributes { text = content model.image, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
 
 
 view : Model -> Html Msg
