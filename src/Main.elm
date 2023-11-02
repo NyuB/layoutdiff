@@ -203,8 +203,9 @@ svg_window model =
     E.el (E.padding 10 :: default_border) <| E.html <| Svg.svg svg_area (svg_image model ++ svg_contours model)
 
 
+image_url_field : Model -> E.Element Msg
 image_url_field model =
-    EI.text default_border { text = content model.image, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelHidden "" }
+    EI.text default_border { text = content model.image, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
 
 
 view : Model -> Html Msg
