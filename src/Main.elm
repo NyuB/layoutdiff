@@ -13,9 +13,9 @@ import Svg.Attributes as SvgAttr
 import Visibility as V exposing (content, isVisible, toggle)
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element { init = init, update = update, view = view, subscriptions = \_ -> Sub.none }
 
 
 type Triforce
@@ -30,6 +30,12 @@ type alias Model =
     , diff : V.Visibility Contour
     , image : V.Visibility String
     }
+
+
+type alias Flags =
+    Maybe
+        { image_url : String
+        }
 
 
 expected : Contour
@@ -62,9 +68,9 @@ diff_actual =
     [ point 50 100, point 75 150, point 100 100, point 50 100 ]
 
 
-init : Model
-init =
-    { expected = V.Visible expected, actual = V.Visible actual, diff = V.Visible diff, image = V.Hidden "" }
+init : Flags -> ( Model, Cmd.Cmd Msg )
+init flags =
+    ( { expected = V.Visible expected, actual = V.Visible actual, diff = V.Visible diff, image = V.Hidden (flags |> Maybe.map (\f -> f.image_url) |> Maybe.withDefault "") }, Cmd.none )
 
 
 type Msg
@@ -73,23 +79,27 @@ type Msg
     | ChangeImageUrl String
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd.Cmd Msg )
 update msg model =
-    case msg of
-        ToggleContour Expected ->
-            { model | expected = toggle model.expected }
+    let
+        m =
+            case msg of
+                ToggleContour Expected ->
+                    { model | expected = toggle model.expected }
 
-        ToggleContour Actual ->
-            { model | actual = toggle model.actual }
+                ToggleContour Actual ->
+                    { model | actual = toggle model.actual }
 
-        ToggleContour Diff ->
-            { model | diff = toggle model.diff }
+                ToggleContour Diff ->
+                    { model | diff = toggle model.diff }
 
-        ToggleImage ->
-            { model | image = toggle model.image }
+                ToggleImage ->
+                    { model | image = toggle model.image }
 
-        ChangeImageUrl s ->
-            { model | image = V.Visible s }
+                ChangeImageUrl s ->
+                    { model | image = V.Visible s }
+    in
+    ( m, Cmd.none )
 
 
 triforce_color : Triforce -> E.Color
