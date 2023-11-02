@@ -1,8 +1,9 @@
 module Main_test exposing (..)
 
 import Expect
-import Main exposing (Msg(..), Triforce(..), Visibility(..), content, init, isVisible, update)
+import Main exposing (Msg(..), Triforce(..), init, update)
 import Test exposing (..)
+import Visibility exposing (..)
 
 
 visibility : List (Visibility a) -> List Bool

@@ -1,4 +1,4 @@
-module Main exposing (Model, Msg(..), Triforce(..), Visibility(..), content, init, isVisible, main, update)
+module Main exposing (Model, Msg(..), Triforce(..), init, main, update)
 
 import Browser
 import Browser.Events exposing (Visibility(..))
@@ -10,6 +10,7 @@ import Element.Input as EI
 import Html exposing (Html)
 import Svg
 import Svg.Attributes as SvgAttr
+import Visibility as V exposing (content, isVisible, toggle)
 
 
 main : Program () Model Msg
@@ -23,46 +24,11 @@ type Triforce
     | Diff
 
 
-type Visibility a
-    = Visible a
-    | Hidden a
-
-
-isVisible : Visibility a -> Bool
-isVisible vh =
-    case vh of
-        Visible _ ->
-            True
-
-        Hidden _ ->
-            False
-
-
-content : Visibility a -> a
-content vh =
-    case vh of
-        Visible v ->
-            v
-
-        Hidden h ->
-            h
-
-
-toggle : Visibility a -> Visibility a
-toggle vh =
-    case vh of
-        Visible v ->
-            Hidden v
-
-        Hidden h ->
-            Visible h
-
-
 type alias Model =
-    { expected : Visibility Contour
-    , actual : Visibility Contour
-    , diff : Visibility Contour
-    , image : Visibility String
+    { expected : V.Visibility Contour
+    , actual : V.Visibility Contour
+    , diff : V.Visibility Contour
+    , image : V.Visibility String
     }
 
 
@@ -98,7 +64,7 @@ diff_actual =
 
 init : Model
 init =
-    { expected = Visible expected, actual = Visible actual, diff = Visible diff, image = Hidden "" }
+    { expected = V.Visible expected, actual = V.Visible actual, diff = V.Visible diff, image = V.Hidden "" }
 
 
 type Msg
@@ -123,7 +89,7 @@ update msg model =
             { model | image = toggle model.image }
 
         ChangeImageUrl s ->
-            { model | image = Visible s }
+            { model | image = V.Visible s }
 
 
 triforce_color : Triforce -> E.Color
@@ -182,7 +148,7 @@ svg_area =
     [ SvgAttr.width "500", SvgAttr.height "500", SvgAttr.viewBox "-1 -1 500 500" ]
 
 
-svg_image_link : { a | image : Visibility String } -> Svg.Attribute msg
+svg_image_link : { a | image : V.Visibility String } -> Svg.Attribute msg
 svg_image_link model =
     SvgAttr.xlinkHref (content model.image)
 
@@ -196,7 +162,7 @@ svg_image model =
         []
 
 
-svg_path_of_visible : ( Visibility Contour, String ) -> List (Svg.Svg msg)
+svg_path_of_visible : ( V.Visibility Contour, String ) -> List (Svg.Svg msg)
 svg_path_of_visible ( v, color ) =
     let
         stroke_visibility =
