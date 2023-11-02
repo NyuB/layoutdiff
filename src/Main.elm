@@ -1,4 +1,4 @@
-module Main exposing (Model, Msg(..), Triforce(..), Visibility(..), content, init, main, update, visible)
+module Main exposing (Model, Msg(..), Triforce(..), Visibility(..), content, init, isVisible, main, update)
 
 import Browser
 import Browser.Events exposing (Visibility(..))
@@ -28,8 +28,8 @@ type Visibility a
     | Hidden a
 
 
-visible : Visibility a -> Bool
-visible vh =
+isVisible : Visibility a -> Bool
+isVisible vh =
     case vh of
         Visible _ ->
             True
@@ -189,7 +189,7 @@ svg_image_link model =
 
 svg_image : Model -> List (Svg.Svg msg)
 svg_image model =
-    if visible model.image then
+    if isVisible model.image then
         [ Svg.image [ svg_image_link model, SvgAttr.opacity "0.66", SvgAttr.x "0", SvgAttr.y "0", SvgAttr.width "240", SvgAttr.height "159" ] [] ]
 
     else
@@ -199,15 +199,20 @@ svg_image model =
 svg_path_of_visible : ( Visibility Contour, String ) -> List (Svg.Svg msg)
 svg_path_of_visible ( v, color ) =
     let
-        base =
-            [ SvgAttr.stroke color, SvgAttr.fillOpacity "0.0" ]
-    in
-    case v of
-        Visible contour ->
-            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "1.0", SvgAttr.d (Contour.Svg.d c) ] ++ base) []) contour
+        stroke_visibility =
+            if isVisible v then
+                SvgAttr.strokeOpacity "1.0"
 
-        Hidden contour ->
-            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "0.0", SvgAttr.d (Contour.Svg.d c) ] ++ base) []) contour
+            else
+                SvgAttr.strokeOpacity "0.0"
+
+        base =
+            [ SvgAttr.stroke color, SvgAttr.fillOpacity "0.0", stroke_visibility ]
+
+        contour =
+            content v
+    in
+    List.map (\c -> Svg.path (SvgAttr.d (Contour.Svg.d c) :: base) []) contour
 
 
 svg_contours : Model -> List (Svg.Svg Msg)
