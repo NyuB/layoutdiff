@@ -14,3 +14,4 @@ test: src/*.elm tests/*.elm
 fmt: src/*.elm tests/*.elm
 	elm-format --yes src
 	elm-format --yes tests
+	tidy -modify -indent -quiet --tidy-mark no page/embedded/index.html
