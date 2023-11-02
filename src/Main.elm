@@ -3,6 +3,7 @@ module Main exposing (Model, Msg(..), Triforce(..), Visibility(..), content, ini
 import Browser
 import Browser.Events exposing (Visibility(..))
 import Contour exposing (point)
+import Contour.Svg
 import Element as E
 import Element.Border as EB
 import Element.Input as EI
@@ -191,10 +192,10 @@ svg_path_of_visible ( v, color ) =
     in
     case v of
         Visible contour ->
-            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "1.0", SvgAttr.d (Contour.d c) ] ++ base) []) contour
+            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "1.0", SvgAttr.d (Contour.Svg.d c) ] ++ base) []) contour
 
         Hidden contour ->
-            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "0.0", SvgAttr.d (Contour.d c) ] ++ base) []) contour
+            List.map (\c -> Svg.path ([ SvgAttr.strokeOpacity "0.0", SvgAttr.d (Contour.Svg.d c) ] ++ base) []) contour
 
 
 svg_contours : Model -> List (Svg.Svg Msg)

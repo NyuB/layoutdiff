@@ -1,6 +1,7 @@
 module Contour_test exposing (suite)
 
 import Contour exposing (..)
+import Contour.Svg
 import Expect exposing (Expectation)
 import Test exposing (..)
 
@@ -127,9 +128,9 @@ xy_diagonal_translation =
 
 single_point_path : Quick_test
 single_point_path =
-    ( "Single point path", \_ -> Expect.equal "M 10 5" (d [ point 10 5 ]) )
+    ( "Single point path", \_ -> Expect.equal "M 10 5" (Contour.Svg.d [ point 10 5 ]) )
 
 
 square_path : Quick_test
 square_path =
-    ( "Square path", \_ -> Expect.equal "M 0 0 L 5 0 L 5 5 L 0 5" (d square) )
+    ( "Square path", \_ -> Expect.equal "M 0 0 L 5 0 L 5 5 L 0 5" (Contour.Svg.d square) )
