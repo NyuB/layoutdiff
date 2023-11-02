@@ -61,5 +61,12 @@ suite =
                             update (ChangeImageUrl "test") init
                     in
                     Expect.equal updated.image (Visible "test")
+            , test "If an image is passed to init flags, it is visible from start" <|
+                \_ ->
+                    let
+                        ( init_model, _ ) =
+                            Main.init (Just { imageUrl = "test.jpg" })
+                    in
+                    Expect.equal True (isVisible init_model.image)
             ]
         ]

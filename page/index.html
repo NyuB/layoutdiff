@@ -7,9 +7,11 @@
 <body>
   <div id="inject-elm"></div>
   <script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const imageUrl = urlParams.get("imageUrl");
   var app = Elm.Main.init({
     node: document.getElementById('inject-elm')
-    , flags: null
+    , flags: imageUrl ? { imageUrl: imageUrl } : null
   });
   </script>
 </body>

@@ -34,7 +34,7 @@ type alias Model =
 
 type alias Flags =
     Maybe
-        { image_url : String
+        { imageUrl : String
         }
 
 
@@ -68,9 +68,14 @@ diff_actual =
     [ point 50 100, point 75 150, point 100 100, point 50 100 ]
 
 
+init_image : Flags -> V.Visibility String
+init_image flags =
+    flags |> Maybe.map (\f -> V.Visible f.imageUrl) |> Maybe.withDefault (V.Hidden "")
+
+
 init : Flags -> ( Model, Cmd.Cmd Msg )
 init flags =
-    ( { expected = V.Visible expected, actual = V.Visible actual, diff = V.Visible diff, image = V.Hidden (flags |> Maybe.map (\f -> f.image_url) |> Maybe.withDefault "") }, Cmd.none )
+    ( { expected = V.Visible expected, actual = V.Visible actual, diff = V.Visible diff, image = init_image flags }, Cmd.none )
 
 
 type Msg

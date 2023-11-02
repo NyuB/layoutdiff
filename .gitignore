@@ -1,2 +1,7 @@
+# Elm compiler output
 page/main.js
 elm-stuff
+
+# Place images to play with directly in the local page folder
+page/*.jpg
+page/*.png
