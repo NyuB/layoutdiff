@@ -1,9 +1,12 @@
 default: fmt test build
 
-build: build/index.html
+build: page/standalone/index.html page/embedded/main.js
 
-build/index.html: src/*.elm
-	elm make --output build/index.html src/Main.elm
+page/standalone/index.html: src/*.elm
+	elm make --output page/standalone/index.html src/Main.elm
+
+page/embedded/main.js: src/*.elm
+	elm make --output page/embedded/main.js src/Main.elm
 
 test: src/*.elm tests/*.elm
 	elm-test --seed 336948560956134 --fuzz 100
