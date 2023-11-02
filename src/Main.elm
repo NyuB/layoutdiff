@@ -2,7 +2,7 @@ module Main exposing (Model, Msg(..), Triforce(..), Visibility(..), content, ini
 
 import Browser
 import Browser.Events exposing (Visibility(..))
-import Contour exposing (point)
+import Contour exposing (Contour, point)
 import Contour.Svg
 import Element as E
 import Element.Border as EB
@@ -21,10 +21,6 @@ type Triforce
     = Expected
     | Actual
     | Diff
-
-
-type alias Contour =
-    List (List Contour.Point)
 
 
 type Visibility a

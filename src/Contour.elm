@@ -1,8 +1,95 @@
-module Contour exposing (Point, point, point_x, point_y, shift_origin)
+module Contour exposing (Area, Contour, Point, contour_area, expand, expand_by, min_area, point, point_x, point_y, shift_origin, zero)
+
+-- Rectangular area
+
+
+type alias Area =
+    { origin : Point
+    , width : Float
+    , height : Float
+    }
+
+
+
+-- Origin point
+
+
+zero : Point
+zero =
+    Point ( 0, 0 )
+
+
+
+-- Empty area
+
+
+min_area : Area
+min_area =
+    { origin = zero, width = 0, height = 0 }
+
+
+
+-- Expand area to contain  a given point
+
+
+expand : Area -> Point -> Area
+expand a (Point ( x, y )) =
+    let
+        ( ax, ay ) =
+            ( point_x a.origin, point_y a.origin )
+
+        lx =
+            min x ax
+
+        ly =
+            min y ay
+
+        rx =
+            max x (ax + a.width)
+
+        ry =
+            max y (ay + a.height)
+    in
+    { origin = point lx ly, width = rx - lx, height = ry - ly }
+
+
+
+-- Expand area by a given margin on all four cardinal directions
+
+
+expand_by : Area -> Float -> Area
+expand_by area delta =
+    let
+        dx =
+            abs delta
+
+        dy =
+            abs delta
+
+        ( ax, ay ) =
+            ( point_x area.origin - dx, point_y area.origin - dy )
+
+        ( w, h ) =
+            ( area.width + 2 * dx, area.height + 2 * dy )
+    in
+    { origin = point ax ay, width = w, height = h }
+
+
+
+-- Minimal area to contain all points of a given contour
+
+
+contour_area : Contour -> Area
+contour_area contour =
+    List.foldl (\point_list area -> List.foldl (\p a -> expand a p) area point_list) min_area contour
 
 
 type Point
     = Point ( Float, Float )
+
+
+type alias Contour =
+    List (List Point)
 
 
 point : Float -> Float -> Point

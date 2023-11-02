@@ -17,6 +17,8 @@ suite =
                 , y_down_translation
                 , xy_diagonal_translation
                 ]
+        , describe "Area" <|
+            quick_tests [ square_area, triangle_area ]
         , describe "SVG representation" <|
             quick_tests [ single_point_path, square_path ]
         ]
@@ -30,11 +32,6 @@ square =
 shift_all : (a -> b) -> List a -> List b
 shift_all s pts =
     List.map s pts
-
-
-zero : Point
-zero =
-    point 0.0 0.0
 
 
 type alias Quick_test =
@@ -124,6 +121,16 @@ xy_diagonal_translation =
         in
         Expect.equalLists [ point -1 2, point 4 2, point 4 7, point -1 7 ] shifted_square
     )
+
+
+square_area : Quick_test
+square_area =
+    ( "Square area", \_ -> Expect.equal { origin = zero, width = 5, height = 5 } (contour_area [ square ]) )
+
+
+triangle_area : Quick_test
+triangle_area =
+    ( "Triangle area", \_ -> Expect.equal { origin = point -5 -3, width = 11, height = 7 } (contour_area [ [ point -5 -2, point 0 4, point 6 -3 ] ]) )
 
 
 single_point_path : Quick_test
