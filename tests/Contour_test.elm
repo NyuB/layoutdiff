@@ -145,9 +145,9 @@ square_path =
 
 view_box : Quick_test
 view_box =
-    ( "SVG viewbox", \_ -> Expect.equal "0 0 4.5 7" (Contour.Svg.viewBox { width = 9, height = 14, xUnit = 0.5, yUnit = 0.5 }) )
+    ( "SVG viewbox", \_ -> Expect.equal "0 0 4.5 7" (Contour.Svg.viewBox { width = 9, height = 14, xUnit = 0.5, yUnit = 0.5, refX = 0.0, refY = 0.0 }) )
 
 
 view_box_skewed : Quick_test
 view_box_skewed =
-    ( "SVG viewbox different units", \_ -> Expect.equal "0 0 10 7.25" (Contour.Svg.viewBox { width = 10, height = 29, xUnit = 1, yUnit = 0.25 }) )
+    ( "SVG viewbox different units", \_ -> Expect.equal "1 2 10 7.25" (Contour.Svg.viewBox { width = 10, height = 29, xUnit = 1, yUnit = 0.25, refX = 1.0, refY = 2.0 }) )

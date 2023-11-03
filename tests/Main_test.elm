@@ -21,7 +21,7 @@ init_none =
 
 
 test_flags =
-    { image = { url = "test.jpg", width = 10, height = 20, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ] }
+    { image = { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ] }
 
 
 init_some : Main.Model

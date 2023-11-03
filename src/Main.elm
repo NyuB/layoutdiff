@@ -9,6 +9,7 @@ import Element.Background as EBack
 import Element.Border as EB
 import Element.Input as EI
 import Html exposing (Html)
+import String exposing (fromFloat)
 import Svg
 import Svg.Attributes as SvgAttr
 import Visibility as V exposing (content, isVisible, toggle)
@@ -30,12 +31,12 @@ view model =
 
 svg_window_width_px : Int
 svg_window_width_px =
-    800
+    1000
 
 
 svg_window_height_px : Int
 svg_window_height_px =
-    800
+    1000
 
 
 
@@ -55,6 +56,8 @@ type alias ImageSpec =
     { url : String
     , width : Int
     , height : Int
+    , refX : Float
+    , refY : Float
     , pixelWidth : Float
     , pixelHeight : Float
     }
@@ -85,7 +88,7 @@ type alias Flags =
 
 init_image : Flags -> V.Visibility ImageSpec
 init_image flags =
-    flags |> Maybe.map (\f -> V.Visible f.image) |> Maybe.withDefault (V.Hidden { url = "", width = 0, height = 0, pixelWidth = 1.0, pixelHeight = 1.0 })
+    flags |> Maybe.map (\f -> V.Visible f.image) |> Maybe.withDefault (V.Hidden { url = "", width = 0, height = 0, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 })
 
 
 init_contour : List (List ( Float, Float )) -> List (List Contour.Point)
@@ -285,7 +288,7 @@ svg_viewbox model =
         img =
             content model.image
     in
-    SvgAttr.viewBox (Contour.Svg.viewBox { width = img.width, height = img.height, xUnit = img.pixelWidth, yUnit = img.pixelHeight })
+    SvgAttr.viewBox (Contour.Svg.viewBox { width = img.width, height = img.height, refX = img.refX, refY = img.refY, xUnit = img.pixelWidth, yUnit = img.pixelHeight })
 
 
 svg_area_dim : Model -> List (Svg.Attribute msg)
@@ -320,6 +323,16 @@ svg_height h =
     SvgAttr.height (String.fromInt h)
 
 
+svg_x : Float -> Svg.Attribute msg
+svg_x x =
+    SvgAttr.x (fromFloat x)
+
+
+svg_y : Float -> Svg.Attribute msg
+svg_y y =
+    SvgAttr.y (fromFloat y)
+
+
 svg_image : Model -> List (Svg.Svg msg)
 svg_image model =
     if isVisible model.image then
@@ -327,7 +340,7 @@ svg_image model =
             img =
                 content model.image
         in
-        [ Svg.image [ svg_image_link model, SvgAttr.opacity "1.0", SvgAttr.x "0", SvgAttr.y "0", svg_width img.width, svg_height img.height ] [] ]
+        [ Svg.image [ svg_image_link model, SvgAttr.opacity "1.0", svg_x img.refX, svg_y img.refY, svg_width img.width, svg_height img.height ] [] ]
 
     else
         []

@@ -3,6 +3,8 @@
         "url": "camel.jpg"
         , "width": 220
         , "height": 271
+        , "refX": 0.0
+        , "refY": 0.0
         , "pixelWidth": 1.0
         , "pixelHeight": 1.0
     }

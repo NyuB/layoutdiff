@@ -26,7 +26,7 @@ d pts =
             d_M first ++ " " ++ String.join " " (List.map d_L rest)
 
 
-viewBox : { width : Int, height : Int, xUnit : Float, yUnit : Float } -> String
+viewBox : { width : Int, height : Int, refX : Float, refY : Float, xUnit : Float, yUnit : Float } -> String
 viewBox img =
     let
         w =
@@ -35,4 +35,4 @@ viewBox img =
         h =
             toFloat img.height * img.yUnit
     in
-    [ 0, 0, w, h ] |> List.map String.fromFloat |> String.join " "
+    [ img.refX, img.refY, w, h ] |> List.map String.fromFloat |> String.join " "
