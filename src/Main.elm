@@ -5,6 +5,7 @@ import Browser.Events exposing (Visibility(..))
 import Contour exposing (Contour, point)
 import Contour.Svg
 import Element as E
+import Element.Background as EBack
 import Element.Border as EB
 import Element.Input as EI
 import Html exposing (Html)
@@ -20,7 +21,21 @@ main =
 
 view : Model -> Html Msg
 view model =
-    E.layout [] <| E.row [ E.spacing 10 ] [ svg_window model, toggle_buttons model, image_url_field model ]
+    E.layout [] <| E.row [ E.spacing 10 ] [ svg_window model, toggle_buttons model, image_controls model ]
+
+
+
+-- main display dimensions
+
+
+svg_window_width_px : Int
+svg_window_width_px =
+    800
+
+
+svg_window_height_px : Int
+svg_window_height_px =
+    800
 
 
 
@@ -32,6 +47,7 @@ type alias Model =
     , actual : V.Visibility Contour
     , diff : V.Visibility Contour
     , image : V.Visibility ImageSpec
+    , imageScaling : Int
     }
 
 
@@ -94,7 +110,7 @@ init_diff flags =
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
 init flags =
-    ( { expected = init_expected flags, actual = init_actual flags, diff = init_diff flags, image = init_image flags }, Cmd.none )
+    ( { expected = init_expected flags, actual = init_actual flags, diff = init_diff flags, image = init_image flags, imageScaling = 1 }, Cmd.none )
 
 
 
@@ -105,6 +121,7 @@ type Msg
     = ToggleContour Triforce
     | ToggleImage
     | ChangeImageUrl String
+    | ChangeImageScaling Int
 
 
 type Triforce
@@ -139,6 +156,13 @@ update msg model =
                             V.Visible { model_image | url = s }
                     in
                     { model | image = updated_image }
+
+                ChangeImageScaling scaling ->
+                    if 0 < scaling then
+                        { model | imageScaling = scaling }
+
+                    else
+                        model
     in
     ( m, Cmd.none )
 
@@ -182,9 +206,40 @@ toggle_show_hide_label visible =
         "(show)"
 
 
+image_controls : Model -> E.Element Msg
+image_controls model =
+    E.column [ E.spacing 10, E.width E.fill ] [ image_url_field model, image_scaling_slider model ]
+
+
 image_url_field : Model -> E.Element Msg
 image_url_field model =
     EI.text default_border_attributes { text = (content model.image).url, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
+
+
+image_scaling_slider : Model -> E.Element Msg
+image_scaling_slider model =
+    let
+        sliderTrack =
+            E.behindContent
+                (E.el
+                    [ E.width E.fill
+                    , E.height (E.px 2)
+                    , E.centerY
+                    , EBack.color (E.rgb255 0 0 0)
+                    , EB.rounded 2
+                    ]
+                    E.none
+                )
+    in
+    EI.slider [ E.height (E.px 10), E.width E.fill, sliderTrack ]
+        { onChange = \f -> ChangeImageScaling (floor f)
+        , label = EI.labelHidden "Image scaling"
+        , min = 1.0
+        , max = 10.0
+        , step = Just 1
+        , thumb = EI.defaultThumb
+        , value = toFloat model.imageScaling
+        }
 
 
 default_border_attributes : List (E.Attribute msg)
@@ -237,10 +292,10 @@ svg_area_dim : Model -> List (Svg.Attribute msg)
 svg_area_dim model =
     let
         w =
-            min 800 (imgWidth model)
+            min svg_window_width_px (imgWidth model * model.imageScaling)
 
         h =
-            min 800 (imgHeight model)
+            min svg_window_height_px (imgHeight model * model.imageScaling)
     in
     [ svg_width w, svg_height h ]
 
@@ -304,4 +359,4 @@ svg_contours model =
 
 svg_window : Model -> E.Element Msg
 svg_window model =
-    E.el (E.padding 0 :: default_border_attributes) <| E.html <| Svg.svg (svg_area model) (svg_image model ++ svg_contours model)
+    E.el ([ E.padding 0, E.width (E.px svg_window_width_px), E.height (E.px svg_window_height_px) ] ++ default_border_attributes) <| E.html <| Svg.svg (svg_area model) (svg_image model ++ svg_contours model)
