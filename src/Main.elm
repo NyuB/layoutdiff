@@ -18,10 +18,13 @@ main =
     Browser.element { init = init, update = update, view = view, subscriptions = \_ -> Sub.none }
 
 
-type Triforce
-    = Expected
-    | Actual
-    | Diff
+view : Model -> Html Msg
+view model =
+    E.layout [] <| E.row [] [ svg_window model, toggle_buttons, image_url_field model ]
+
+
+
+-- model
 
 
 type alias Model =
@@ -39,6 +42,20 @@ type alias ImageSpec =
     , pixelWidth : Float
     , pixelHeight : Float
     }
+
+
+imgWidth : Model -> Int
+imgWidth model =
+    (content model.image).width
+
+
+imgHeight : Model -> Int
+imgHeight model =
+    (content model.image).height
+
+
+
+-- init
 
 
 type alias Flags =
@@ -80,10 +97,20 @@ init flags =
     ( { expected = init_expected flags, actual = init_actual flags, diff = init_diff flags, image = init_image flags }, Cmd.none )
 
 
+
+-- update
+
+
 type Msg
     = ToggleContour Triforce
     | ToggleImage
     | ChangeImageUrl String
+
+
+type Triforce
+    = Expected
+    | Actual
+    | Diff
 
 
 update : Msg -> Model -> ( Model, Cmd.Cmd Msg )
@@ -116,6 +143,10 @@ update msg model =
     ( m, Cmd.none )
 
 
+
+-- view
+
+
 triforce_color : Triforce -> E.Color
 triforce_color t =
     case t of
@@ -140,6 +171,11 @@ triforce_label t =
 
         Diff ->
             "Diff"
+
+
+image_url_field : Model -> E.Element Msg
+image_url_field model =
+    EI.text default_border_attributes { text = (content model.image).url, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
 
 
 default_border_attributes : List (E.Attribute msg)
@@ -167,14 +203,8 @@ toggle_buttons =
         ]
 
 
-imgWidth : Model -> Int
-imgWidth model =
-    (content model.image).width
 
-
-imgHeight : Model -> Int
-imgHeight model =
-    (content model.image).height
+-- SVG
 
 
 svg_viewbox : Model -> Svg.Attribute Msg
@@ -208,10 +238,12 @@ svg_image_link model =
     SvgAttr.xlinkHref (content model.image).url
 
 
+svg_width : Int -> Svg.Attribute msg
 svg_width w =
     SvgAttr.width (String.fromInt w)
 
 
+svg_height : Int -> Svg.Attribute msg
 svg_height h =
     SvgAttr.height (String.fromInt h)
 
@@ -256,13 +288,3 @@ svg_contours model =
 svg_window : Model -> E.Element Msg
 svg_window model =
     E.el (E.padding 0 :: default_border_attributes) <| E.html <| Svg.svg (svg_area model) (svg_image model ++ svg_contours model)
-
-
-image_url_field : Model -> E.Element Msg
-image_url_field model =
-    EI.text default_border_attributes { text = (content model.image).url, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
-
-
-view : Model -> Html Msg
-view model =
-    E.layout [] <| E.row [] [ svg_window model, toggle_buttons, image_url_field model ]
