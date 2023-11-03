@@ -8,11 +8,20 @@
   <div id="inject-elm"></div>
   <script>
   const urlParams = new URLSearchParams(window.location.search);
-  const imageUrl = urlParams.get("imageUrl");
-  var app = Elm.Main.init({
-    node: document.getElementById('inject-elm')
-    , flags: imageUrl ? { imageUrl: imageUrl } : null
-  });
+  const specUrl = urlParams.get("specUrl");
+  if(specUrl) {
+    fetch(specUrl).then(r => r.json()).then(spec => {
+      Elm.Main.init({
+        node: document.getElementById('inject-elm')
+        , flags: spec ? spec : null
+      });
+    });
+  } else {
+    Elm.Main.init({
+      node: document.getElementById('inject-elm')
+      , flags: null
+    });
+  }
   </script>
 </body>
 </html>

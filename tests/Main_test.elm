@@ -11,11 +11,24 @@ visibility l =
     List.map isVisible l
 
 
-init : Main.Model
-init =
+init_none : Main.Model
+init_none =
     let
         ( m, _ ) =
             Main.init Nothing
+    in
+    m
+
+
+test_flags =
+    { image = { url = "test.jpg", width = 10, height = 20, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ] }
+
+
+init_some : Main.Model
+init_some =
+    let
+        ( m, _ ) =
+            Main.init (Just test_flags)
     in
     m
 
@@ -24,49 +37,47 @@ suite : Test
 suite =
     describe "Main logic"
         [ describe "Visibility"
-            [ test "Visibility at init" <|
-                \_ -> Expect.equalLists [ True, True, True, False ] (visibility [ init.expected, init.actual, init.diff ] ++ visibility [ init.image ])
+            [ test "Visibility at init None" <|
+                \_ -> Expect.equalLists [ False, False, False, False ] (visibility [ init_none.expected, init_none.actual, init_none.diff ] ++ visibility [ init_none.image ])
+            , test "Visibility at init with flags" <|
+                \_ -> Expect.equalLists [ True, True, True, True ] (visibility [ init_some.expected, init_some.actual, init_some.diff ] ++ visibility [ init_some.image ])
             , test "Toggle expected visibility" <|
                 \_ ->
                     let
                         ( updated, _ ) =
-                            update (ToggleContour Expected) init
+                            update (ToggleContour Expected) init_some
                     in
-                    Expect.equal updated.expected (Hidden (content init.expected))
+                    Expect.equal updated.expected (Hidden (content init_some.expected))
             , test "Toggle actual visibility" <|
                 \_ ->
                     let
                         ( updated, _ ) =
-                            update (ToggleContour Actual) init
+                            update (ToggleContour Actual) init_some
                     in
-                    Expect.equal updated.actual (Hidden (content init.actual))
+                    Expect.equal updated.actual (Hidden (content init_some.actual))
             , test "Toggle diff visibility" <|
                 \_ ->
                     let
                         ( updated, _ ) =
-                            update (ToggleContour Diff) init
+                            update (ToggleContour Diff) init_some
                     in
-                    Expect.equal updated.diff (Hidden (content init.diff))
+                    Expect.equal updated.diff (Hidden (content init_some.diff))
             , test "Toggle image visibility" <|
                 \_ ->
                     let
                         ( updated, _ ) =
-                            update ToggleImage init
+                            update ToggleImage init_some
                     in
-                    Expect.equal updated.image (Visible (content init.image))
+                    Expect.equal updated.image (Hidden (content init_some.image))
             , test "Updating image url makes it visible" <|
                 \_ ->
                     let
                         ( updated, _ ) =
-                            update (ChangeImageUrl "test") init
+                            update (ChangeImageUrl "test") init_none
                     in
-                    Expect.equal updated.image (Visible "test")
-            , test "If an image is passed to init flags, it is visible from start" <|
+                    Expect.equal True (isVisible updated.image)
+            , test "If init flags are passed, components are visible from start" <|
                 \_ ->
-                    let
-                        ( init_model, _ ) =
-                            Main.init (Just { imageUrl = "test.jpg" })
-                    in
-                    Expect.equal True (isVisible init_model.image)
+                    Expect.equal True (isVisible init_some.image)
             ]
         ]
