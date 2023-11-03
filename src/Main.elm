@@ -20,7 +20,7 @@ main =
 
 view : Model -> Html Msg
 view model =
-    E.layout [] <| E.row [] [ svg_window model, toggle_buttons, image_url_field model ]
+    E.layout [] <| E.row [ E.spacing 10 ] [ svg_window model, toggle_buttons model, image_url_field model ]
 
 
 
@@ -173,6 +173,15 @@ triforce_label t =
             "Diff"
 
 
+toggle_show_hide_label : Bool -> String
+toggle_show_hide_label visible =
+    if visible then
+        "(hide)"
+
+    else
+        "(show)"
+
+
 image_url_field : Model -> E.Element Msg
 image_url_field model =
     EI.text default_border_attributes { text = (content model.image).url, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
@@ -183,23 +192,31 @@ default_border_attributes =
     [ EB.width 2, EB.rounded 5 ]
 
 
-toggle_contour_button : Triforce -> E.Element Msg
-toggle_contour_button t =
-    EI.button ([ EB.color (triforce_color t) ] ++ default_border_attributes) { onPress = Just (ToggleContour t), label = E.text (triforce_label t) }
+toggle_contour_button : Triforce -> Bool -> E.Element Msg
+toggle_contour_button t v =
+    let
+        label =
+            triforce_label t ++ " " ++ toggle_show_hide_label v
+    in
+    EI.button ([ EB.color (triforce_color t) ] ++ default_border_attributes) { onPress = Just (ToggleContour t), label = E.text label }
 
 
-toggle_image_button : E.Element Msg
-toggle_image_button =
-    EI.button ([ EB.color (E.rgb255 0 0 0) ] ++ default_border_attributes) { onPress = Just ToggleImage, label = E.text "Image" }
+toggle_image_button : Bool -> E.Element Msg
+toggle_image_button v =
+    let
+        label =
+            "Image " ++ toggle_show_hide_label v
+    in
+    EI.button ([ EB.color (E.rgb255 0 0 0) ] ++ default_border_attributes) { onPress = Just ToggleImage, label = E.text label }
 
 
-toggle_buttons : E.Element Msg
-toggle_buttons =
+toggle_buttons : Model -> E.Element Msg
+toggle_buttons model =
     E.column [ E.spacing 10 ]
-        [ toggle_contour_button Expected
-        , toggle_contour_button Actual
-        , toggle_contour_button Diff
-        , toggle_image_button
+        [ toggle_contour_button Expected (V.isVisible model.expected)
+        , toggle_contour_button Actual (V.isVisible model.actual)
+        , toggle_contour_button Diff (V.isVisible model.diff)
+        , toggle_image_button (V.isVisible model.image)
         ]
 
 
