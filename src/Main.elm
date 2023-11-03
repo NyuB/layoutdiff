@@ -167,9 +167,40 @@ toggle_buttons =
         ]
 
 
-svg_area : List (Svg.Attribute msg)
-svg_area =
-    [ SvgAttr.width "500", SvgAttr.height "500", SvgAttr.viewBox "0 0 500 500" ]
+imgWidth : Model -> Int
+imgWidth model =
+    (content model.image).width
+
+
+imgHeight : Model -> Int
+imgHeight model =
+    (content model.image).height
+
+
+svg_viewbox : Model -> Svg.Attribute Msg
+svg_viewbox model =
+    let
+        img =
+            content model.image
+    in
+    SvgAttr.viewBox (Contour.Svg.viewBox { width = img.width, height = img.height, xUnit = img.pixelWidth, yUnit = img.pixelHeight })
+
+
+svg_area_dim : Model -> List (Svg.Attribute msg)
+svg_area_dim model =
+    let
+        w =
+            min 800 (imgWidth model)
+
+        h =
+            min 800 (imgHeight model)
+    in
+    [ svg_width w, svg_height h ]
+
+
+svg_area : Model -> List (Svg.Attribute Msg)
+svg_area model =
+    svg_area_dim model ++ [ svg_viewbox model ]
 
 
 svg_image_link : Model -> Svg.Attribute msg
@@ -192,7 +223,7 @@ svg_image model =
             img =
                 content model.image
         in
-        [ Svg.image [ svg_image_link model, SvgAttr.opacity "0.66", SvgAttr.x "0", SvgAttr.y "0", svg_width img.width, svg_height img.height ] [] ]
+        [ Svg.image [ svg_image_link model, SvgAttr.opacity "1.0", SvgAttr.x "0", SvgAttr.y "0", svg_width img.width, svg_height img.height ] [] ]
 
     else
         []
@@ -224,7 +255,7 @@ svg_contours model =
 
 svg_window : Model -> E.Element Msg
 svg_window model =
-    E.el (E.padding 10 :: default_border_attributes) <| E.html <| Svg.svg svg_area (svg_image model ++ svg_contours model)
+    E.el (E.padding 0 :: default_border_attributes) <| E.html <| Svg.svg (svg_area model) (svg_image model ++ svg_contours model)
 
 
 image_url_field : Model -> E.Element Msg

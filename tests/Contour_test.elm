@@ -20,7 +20,7 @@ suite =
         , describe "Area" <|
             quick_tests [ square_area, triangle_area ]
         , describe "SVG representation" <|
-            quick_tests [ single_point_path, square_path ]
+            quick_tests [ single_point_path, square_path, view_box, view_box_skewed ]
         ]
 
 
@@ -141,3 +141,13 @@ single_point_path =
 square_path : Quick_test
 square_path =
     ( "Square path", \_ -> Expect.equal "M 0 0 L 5 0 L 5 5 L 0 5" (Contour.Svg.d square) )
+
+
+view_box : Quick_test
+view_box =
+    ( "SVG viewbox", \_ -> Expect.equal "0 0 4.5 7" (Contour.Svg.viewBox { width = 9, height = 14, xUnit = 0.5, yUnit = 0.5 }) )
+
+
+view_box_skewed : Quick_test
+view_box_skewed =
+    ( "SVG viewbox different units", \_ -> Expect.equal "0 0 10 7.25" (Contour.Svg.viewBox { width = 10, height = 29, xUnit = 1, yUnit = 0.25 }) )
