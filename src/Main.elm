@@ -159,6 +159,7 @@ update msg model =
     ( m, Cmd.none )
 
 
+toggled_image : Model -> Maybe (V.Visibility ImageSpec)
 toggled_image model =
     model.image |> Maybe.map (\i -> toggle i)
 
@@ -347,6 +348,7 @@ svg_y y =
     SvgAttr.y (fromFloat y)
 
 
+maybe_if : (a -> Bool) -> Maybe a -> Maybe a
 maybe_if predicate opt =
     Maybe.andThen
         (\x ->
