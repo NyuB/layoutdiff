@@ -1,4 +1,4 @@
-module Main exposing (Model, Msg(..), Triforce(..), init, main, update)
+module Main exposing (Model, Msg(..), Triforce(..), init, main, update, view)
 
 import Browser
 import Browser.Events exposing (Visibility(..))

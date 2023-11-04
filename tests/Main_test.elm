@@ -1,8 +1,12 @@
 module Main_test exposing (..)
 
 import Expect
-import Main exposing (Msg(..), Triforce(..), update)
+import Html exposing (Html)
+import Html.Attributes
+import Main exposing (Msg(..), Triforce(..), update, view)
 import Test exposing (..)
+import Test.Html.Query as HQ
+import Test.Html.Selector exposing (..)
 import Visibility exposing (..)
 
 
@@ -10,6 +14,13 @@ suite : Test
 suite =
     describe "Main logic"
         [ visibility_suite
+        ]
+
+
+html_suite : Test
+html_suite =
+    describe "Html rendering"
+        [ svg_has_size_of_image
         ]
 
 
@@ -59,6 +70,27 @@ visibility_suite =
             \_ ->
                 Expect.equal True (isVisible init_some.image)
         ]
+
+
+single_svg : Html msg -> HQ.Single msg
+single_svg v =
+    v |> HQ.fromHtml |> HQ.find [ tag "svg" ]
+
+
+svg_has_size_of_image : Test
+svg_has_size_of_image =
+    test "SVG window has same dimensions than image" <|
+        \_ ->
+            let
+                v =
+                    view init_some
+            in
+            single_svg v |> HQ.has [ html_attribute "viewBox" "0 0 10 20", html_attribute "width" "10", html_attribute "height" "20" ]
+
+
+html_attribute : String -> String -> Selector
+html_attribute k v =
+    attribute (Html.Attributes.attribute k v)
 
 
 visibility : List (Visibility a) -> List Bool
