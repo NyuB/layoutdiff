@@ -123,7 +123,6 @@ init flags =
 type Msg
     = ToggleContour Triforce
     | ToggleImage
-    | ChangeImageUrl String
     | ChangeImageScaling Int
 
 
@@ -150,9 +149,6 @@ update msg model =
                 ToggleImage ->
                     { model | image = toggled_image model }
 
-                ChangeImageUrl url ->
-                    { model | image = changed_image_url model url }
-
                 ChangeImageScaling scaling ->
                     if 0 < scaling then
                         { model | imageScaling = scaling }
@@ -165,18 +161,6 @@ update msg model =
 
 toggled_image model =
     model.image |> Maybe.map (\i -> toggle i)
-
-
-changed_image_url model url =
-    model.image
-        |> Maybe.map
-            (\i ->
-                let
-                    img =
-                        content i
-                in
-                V.Visible { img | url = url }
-            )
 
 
 
@@ -220,16 +204,7 @@ toggle_show_hide_label visible =
 
 image_controls : Model -> E.Element Msg
 image_controls model =
-    E.column [ E.spacing 10, E.width E.fill ] [ image_url_field model, image_scaling_slider model ]
-
-
-image_url_field : Model -> E.Element Msg
-image_url_field model =
-    let
-        text =
-            model.image |> Maybe.map (\i -> (content i).url) |> Maybe.withDefault ""
-    in
-    EI.text default_border_attributes { text = text, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
+    E.column [ E.spacing 10, E.width E.fill ] [ image_scaling_slider model ]
 
 
 image_scaling_slider : Model -> E.Element Msg
@@ -247,9 +222,9 @@ image_scaling_slider model =
                     E.none
                 )
     in
-    EI.slider [ E.height (E.px 10), E.width E.fill, sliderTrack ]
+    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
         { onChange = \f -> ChangeImageScaling (floor f)
-        , label = EI.labelHidden "Image scaling"
+        , label = EI.labelBelow [] (E.text "Image scaling")
         , min = 1.0
         , max = 10.0
         , step = Just 1

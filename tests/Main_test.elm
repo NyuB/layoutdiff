@@ -62,16 +62,6 @@ visibility_suite =
                         update ToggleImage initial
                 in
                 Expect.equal [ True, False ] (visibility_presence [ initial.image, updated.image ])
-        , test "Updating image url makes it visible" <|
-            \_ ->
-                let
-                    initial =
-                        init_some |> update ToggleImage |> Tuple.first
-
-                    ( updated, _ ) =
-                        update (ChangeImageUrl "test") initial
-                in
-                Expect.equal [ False, True ] (visibility_presence [ initial.image, updated.image ])
         , test "If init flags are passed, components are visible from start" <|
             \_ ->
                 Expect.equal [ True ] (visibility_presence [ init_some.image ])
