@@ -1,4 +1,4 @@
-module Contour exposing (Area, Contour, Point, contour_area, expand, expand_by, min_area, point, point_x, point_y, shift_origin, zero)
+module Contour exposing (Area, Contour, Point, contour_area, expand_by, expand_for_contour, expand_for_point, min_area, point, point_x, point_y, shift_origin, zero)
 
 -- Rectangular area
 
@@ -32,8 +32,8 @@ min_area =
 -- Expand area to contain  a given point
 
 
-expand : Area -> Point -> Area
-expand a (Point ( x, y )) =
+expand_for_point : Area -> Point -> Area
+expand_for_point a (Point ( x, y )) =
     let
         ( ax, ay ) =
             ( point_x a.origin, point_y a.origin )
@@ -51,6 +51,16 @@ expand a (Point ( x, y )) =
             max y (ay + a.height)
     in
     { origin = point lx ly, width = rx - lx, height = ry - ly }
+
+
+expand_for_points : Area -> List Point -> Area
+expand_for_points area pts =
+    List.foldl (\p a -> expand_for_point a p) area pts
+
+
+expand_for_contour : Area -> Contour -> Area
+expand_for_contour area contour =
+    List.foldl (\c a -> expand_for_points a c) area contour
 
 
 
@@ -81,7 +91,7 @@ expand_by area delta =
 
 contour_area : Contour -> Area
 contour_area contour =
-    List.foldl (\point_list area -> List.foldl (\p a -> expand a p) area point_list) min_area contour
+    List.foldl (\point_list area -> List.foldl (\p a -> expand_for_point a p) area point_list) min_area contour
 
 
 type Point

@@ -26,13 +26,6 @@ d pts =
             d_M first ++ " " ++ String.join " " (List.map d_L rest)
 
 
-viewBox : { width : Int, height : Int, refX : Float, refY : Float, xUnit : Float, yUnit : Float } -> String
-viewBox img =
-    let
-        w =
-            toFloat img.width * img.xUnit
-
-        h =
-            toFloat img.height * img.yUnit
-    in
-    [ img.refX, img.refY, w, h ] |> List.map String.fromFloat |> String.join " "
+viewBox : Area -> String
+viewBox area =
+    [ point_x area.origin, point_y area.origin, area.width, area.height ] |> List.map String.fromFloat |> String.join " "

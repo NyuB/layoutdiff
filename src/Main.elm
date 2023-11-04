@@ -47,7 +47,7 @@ type alias Model =
     { expected : V.Visibility Contour
     , actual : V.Visibility Contour
     , diff : V.Visibility Contour
-    , image : V.Visibility ImageSpec
+    , image : Maybe (V.Visibility ImageSpec)
     , imageScaling : Int
     }
 
@@ -65,12 +65,12 @@ type alias ImageSpec =
 
 imgWidth : Model -> Int
 imgWidth model =
-    (content model.image).width
+    model.image |> Maybe.map (\vi -> (content vi).width) |> Maybe.withDefault svg_window_width_px
 
 
 imgHeight : Model -> Int
 imgHeight model =
-    (content model.image).height
+    model.image |> Maybe.map (\vi -> (content vi).height) |> Maybe.withDefault svg_window_height_px
 
 
 
@@ -79,16 +79,16 @@ imgHeight model =
 
 type alias Flags =
     Maybe
-        { image : ImageSpec
+        { image : Maybe ImageSpec
         , expected : List (List ( Float, Float ))
         , actual : List (List ( Float, Float ))
         , diff : List (List ( Float, Float ))
         }
 
 
-init_image : Flags -> V.Visibility ImageSpec
+init_image : Flags -> Maybe (V.Visibility ImageSpec)
 init_image flags =
-    flags |> Maybe.map (\f -> V.Visible f.image) |> Maybe.withDefault (V.Hidden { url = "", width = 0, height = 0, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 })
+    flags |> Maybe.andThen (\f -> f.image) |> Maybe.map V.Visible
 
 
 init_contour : List (List ( Float, Float )) -> List (List Contour.Point)
@@ -148,17 +148,10 @@ update msg model =
                     { model | diff = toggle model.diff }
 
                 ToggleImage ->
-                    { model | image = toggle model.image }
+                    { model | image = toggled_image model }
 
-                ChangeImageUrl s ->
-                    let
-                        model_image =
-                            content model.image
-
-                        updated_image =
-                            V.Visible { model_image | url = s }
-                    in
-                    { model | image = updated_image }
+                ChangeImageUrl url ->
+                    { model | image = changed_image_url model url }
 
                 ChangeImageScaling scaling ->
                     if 0 < scaling then
@@ -168,6 +161,22 @@ update msg model =
                         model
     in
     ( m, Cmd.none )
+
+
+toggled_image model =
+    model.image |> Maybe.map (\i -> toggle i)
+
+
+changed_image_url model url =
+    model.image
+        |> Maybe.map
+            (\i ->
+                let
+                    img =
+                        content i
+                in
+                V.Visible { img | url = url }
+            )
 
 
 
@@ -216,7 +225,11 @@ image_controls model =
 
 image_url_field : Model -> E.Element Msg
 image_url_field model =
-    EI.text default_border_attributes { text = (content model.image).url, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
+    let
+        text =
+            model.image |> Maybe.map (\i -> (content i).url) |> Maybe.withDefault ""
+    in
+    EI.text default_border_attributes { text = text, onChange = \t -> ChangeImageUrl t, placeholder = Nothing, label = EI.labelRight [] (E.text "Image url") }
 
 
 image_scaling_slider : Model -> E.Element Msg
@@ -271,24 +284,50 @@ toggle_image_button v =
 toggle_buttons : Model -> E.Element Msg
 toggle_buttons model =
     E.column [ E.spacing 10 ]
-        [ toggle_contour_button Expected (V.isVisible model.expected)
-        , toggle_contour_button Actual (V.isVisible model.actual)
-        , toggle_contour_button Diff (V.isVisible model.diff)
-        , toggle_image_button (V.isVisible model.image)
-        ]
+        ([ toggle_contour_button Expected (V.isVisible model.expected)
+         , toggle_contour_button Actual (V.isVisible model.actual)
+         , toggle_contour_button Diff (V.isVisible model.diff)
+         ]
+            ++ toggle_image_buttons model
+        )
+
+
+toggle_image_buttons : Model -> List (E.Element Msg)
+toggle_image_buttons model =
+    model.image |> Maybe.map (\img -> [ toggle_image_button (V.isVisible img) ]) |> Maybe.withDefault []
 
 
 
 -- SVG
 
 
+area_of_image : ImageSpec -> Contour.Area
+area_of_image img =
+    let
+        w =
+            toFloat img.width * img.pixelWidth
+
+        h =
+            toFloat img.height * img.pixelHeight
+    in
+    { origin = point img.refX img.refY, width = w, height = h }
+
+
+area_of_contours : Model -> Contour.Area
+area_of_contours model =
+    [ model.expected, model.actual, model.diff ]
+        |> List.map content
+        |> List.foldl (\c a -> Contour.expand_for_contour a c) Contour.min_area
+
+
 svg_viewbox : Model -> Svg.Attribute Msg
 svg_viewbox model =
-    let
-        img =
-            content model.image
-    in
-    SvgAttr.viewBox (Contour.Svg.viewBox { width = img.width, height = img.height, refX = img.refX, refY = img.refY, xUnit = img.pixelWidth, yUnit = img.pixelHeight })
+    case model.image |> Maybe.map content of
+        Just img ->
+            SvgAttr.viewBox (Contour.Svg.viewBox (area_of_image img))
+
+        Nothing ->
+            SvgAttr.viewBox (Contour.Svg.viewBox (area_of_contours model))
 
 
 svg_area_dim : Model -> List (Svg.Attribute msg)
@@ -308,9 +347,9 @@ svg_area model =
     svg_area_dim model ++ [ svg_viewbox model ]
 
 
-svg_image_link : Model -> Svg.Attribute msg
-svg_image_link model =
-    SvgAttr.xlinkHref (content model.image).url
+svg_image_link : ImageSpec -> Svg.Attribute msg
+svg_image_link img =
+    SvgAttr.xlinkHref img.url
 
 
 svg_width : Int -> Svg.Attribute msg
@@ -333,17 +372,28 @@ svg_y y =
     SvgAttr.y (fromFloat y)
 
 
+maybe_if predicate opt =
+    Maybe.andThen
+        (\x ->
+            if predicate x then
+                Just x
+
+            else
+                Nothing
+        )
+        opt
+
+
 svg_image : Model -> List (Svg.Svg msg)
 svg_image model =
-    if isVisible model.image then
-        let
-            img =
-                content model.image
-        in
-        [ Svg.image [ svg_image_link model, SvgAttr.opacity "1.0", svg_x img.refX, svg_y img.refY, svg_width img.width, svg_height img.height ] [] ]
-
-    else
-        []
+    model.image
+        |> maybe_if V.isVisible
+        |> Maybe.map content
+        |> Maybe.map
+            (\img ->
+                [ Svg.image [ svg_image_link img, SvgAttr.opacity "1.0", svg_x img.refX, svg_y img.refY, svg_width img.width, svg_height img.height ] [] ]
+            )
+        |> Maybe.withDefault []
 
 
 svg_path_of_visible : ( V.Visibility Contour, String ) -> List (Svg.Svg msg)

@@ -28,9 +28,9 @@ visibility_suite : Test
 visibility_suite =
     describe "Visibility"
         [ test "Visibility at init None" <|
-            \_ -> Expect.equalLists [ False, False, False, False ] (visibility [ init_none.expected, init_none.actual, init_none.diff ] ++ visibility [ init_none.image ])
+            \_ -> Expect.equalLists [ False, False, False, False ] (visibility [ init_none.expected, init_none.actual, init_none.diff ] ++ visibility_presence [ init_none.image ])
         , test "Visibility at init with flags" <|
-            \_ -> Expect.equalLists [ True, True, True, True ] (visibility [ init_some.expected, init_some.actual, init_some.diff ] ++ visibility [ init_some.image ])
+            \_ -> Expect.equalLists [ True, True, True, True ] (visibility [ init_some.expected, init_some.actual, init_some.diff ] ++ visibility_presence [ init_some.image ])
         , test "Toggle expected visibility" <|
             \_ ->
                 let
@@ -55,20 +55,26 @@ visibility_suite =
         , test "Toggle image visibility" <|
             \_ ->
                 let
+                    initial =
+                        init_some
+
                     ( updated, _ ) =
-                        update ToggleImage init_some
+                        update ToggleImage initial
                 in
-                Expect.equal updated.image (Hidden (content init_some.image))
+                Expect.equal [ True, False ] (visibility_presence [ initial.image, updated.image ])
         , test "Updating image url makes it visible" <|
             \_ ->
                 let
+                    initial =
+                        init_some |> update ToggleImage |> Tuple.first
+
                     ( updated, _ ) =
-                        update (ChangeImageUrl "test") init_none
+                        update (ChangeImageUrl "test") initial
                 in
-                Expect.equal True (isVisible updated.image)
+                Expect.equal [ False, True ] (visibility_presence [ initial.image, updated.image ])
         , test "If init flags are passed, components are visible from start" <|
             \_ ->
-                Expect.equal True (isVisible init_some.image)
+                Expect.equal [ True ] (visibility_presence [ init_some.image ])
         ]
 
 
@@ -98,24 +104,21 @@ visibility l =
     List.map isVisible l
 
 
+visibility_presence : List (Maybe (Visibility a)) -> List Bool
+visibility_presence l =
+    List.map (\vo -> vo |> Maybe.map isVisible |> Maybe.withDefault False) l
+
+
 init_none : Main.Model
 init_none =
-    let
-        ( m, _ ) =
-            Main.init Nothing
-    in
-    m
+    Main.init Nothing |> Tuple.first
 
 
 init_some : Main.Model
 init_some =
-    let
-        ( m, _ ) =
-            Main.init (Just test_flags)
-    in
-    m
+    Main.init (Just test_flags) |> Tuple.first
 
 
-test_flags : { image : { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : List (List a), actual : List (List b), diff : List (List c) }
+test_flags : { image : Maybe { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : List (List a), actual : List (List b), diff : List (List c) }
 test_flags =
-    { image = { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ] }
+    { image = Just { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ] }

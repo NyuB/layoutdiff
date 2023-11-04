@@ -18,7 +18,7 @@ suite =
                 , xy_diagonal_translation
                 ]
         , describe "Area" <|
-            quick_tests [ square_area, triangle_area ]
+            quick_tests [ square_area, triangle_area, square_triangle_contour_area ]
         , describe "SVG representation" <|
             quick_tests [ single_point_path, square_path, view_box, view_box_skewed ]
         ]
@@ -27,6 +27,11 @@ suite =
 square : List Point
 square =
     [ point 0.0 0.0, point 5.0 0.0, point 5.0 5.0, point 0.0 5.0 ]
+
+
+triangle : List Point
+triangle =
+    [ point -5 -2, point 0 4, point 6 -3 ]
 
 
 shift_all : (a -> b) -> List a -> List b
@@ -130,7 +135,12 @@ square_area =
 
 triangle_area : Quick_test
 triangle_area =
-    ( "Triangle area", \_ -> Expect.equal { origin = point -5 -3, width = 11, height = 7 } (contour_area [ [ point -5 -2, point 0 4, point 6 -3 ] ]) )
+    ( "Triangle area", \_ -> Expect.equal { origin = point -5 -3, width = 11, height = 7 } (contour_area [ triangle ]) )
+
+
+square_triangle_contour_area : Quick_test
+square_triangle_contour_area =
+    ( "[square, triangle] area", \_ -> Expect.equal { origin = point -5 -3, width = 11, height = 8 } (contour_area [ square, triangle ]) )
 
 
 single_point_path : Quick_test
@@ -145,9 +155,9 @@ square_path =
 
 view_box : Quick_test
 view_box =
-    ( "SVG viewbox", \_ -> Expect.equal "0 0 4.5 7" (Contour.Svg.viewBox { width = 9, height = 14, xUnit = 0.5, yUnit = 0.5, refX = 0.0, refY = 0.0 }) )
+    ( "SVG viewbox", \_ -> Expect.equal "0 0 4.5 7" (Contour.Svg.viewBox { width = 4.5, height = 7, origin = point 0 0 }) )
 
 
 view_box_skewed : Quick_test
 view_box_skewed =
-    ( "SVG viewbox different units", \_ -> Expect.equal "1 2 10 7.25" (Contour.Svg.viewBox { width = 10, height = 29, xUnit = 1, yUnit = 0.25, refX = 1.0, refY = 2.0 }) )
+    ( "SVG viewbox different origin", \_ -> Expect.equal "1 2 10 7.25" (Contour.Svg.viewBox { width = 10, height = 7.25, origin = point 1 2 }) )
