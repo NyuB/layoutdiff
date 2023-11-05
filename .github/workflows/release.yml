@@ -39,6 +39,7 @@ jobs:
         tag_name: snapshot
         target_commitish: main
         body: ${{ github.event.inputs.text }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         files: |
           page/main.js
           page/index.html
