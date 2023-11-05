@@ -36,6 +36,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         name: ${{ github.event.inputs.name }}
+        tag_name: snapshot
+        target_commitish: main
         body: ${{ github.event.inputs.text }}
         files: |
           page/main.js
