@@ -2,7 +2,7 @@ module Main exposing (Flags, Model, Msg(..), Triforce(..), init, main, update, v
 
 import Browser
 import Browser.Events exposing (Visibility(..))
-import Contour exposing (Contour, point)
+import Contour exposing (Contour, ReferentialOrigin(..), point, translate_contour_to_referential)
 import Contour.Svg
 import Element as E
 import Element.Background as EBack
@@ -49,6 +49,8 @@ type alias Model =
     , diff : V.Visibility Contour
     , image : Maybe (V.Visibility ImageSpec)
     , imageScaling : Int
+    , contoursReferential : ReferentialOrigin
+    , imageReferential : ReferentialOrigin
     }
 
 
@@ -113,7 +115,16 @@ init_diff flags =
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
 init flags =
-    ( { expected = init_expected flags, actual = init_actual flags, diff = init_diff flags, image = init_image flags, imageScaling = 1 }, Cmd.none )
+    ( { expected = init_expected flags
+      , actual = init_actual flags
+      , diff = init_diff flags
+      , image = init_image flags
+      , imageScaling = 1
+      , contoursReferential = BottomLeft
+      , imageReferential = TopLeft
+      }
+    , Cmd.none
+    )
 
 
 
@@ -296,14 +307,13 @@ area_of_contours model =
         |> List.foldl (\c a -> Contour.expand_for_contour a c) Contour.min_area
 
 
+area_of_model model =
+    model.image |> Maybe.map (\i -> area_of_image (content i)) |> Maybe.withDefault (area_of_contours model)
+
+
 svg_viewbox : Model -> Svg.Attribute Msg
 svg_viewbox model =
-    case model.image |> Maybe.map content of
-        Just img ->
-            SvgAttr.viewBox (Contour.Svg.viewBox (area_of_image img))
-
-        Nothing ->
-            SvgAttr.viewBox (Contour.Svg.viewBox (area_of_contours model))
+    SvgAttr.viewBox (Contour.Svg.viewBox (area_of_model model))
 
 
 svg_area_dim : Model -> List (Svg.Attribute msg)
@@ -394,7 +404,14 @@ svg_path_of_visible ( v, color ) =
 
 svg_contours : Model -> List (Svg.Svg Msg)
 svg_contours model =
-    List.concatMap svg_path_of_visible [ ( model.expected, "green" ), ( model.actual, "blue" ), ( model.diff, "red" ) ]
+    let
+        area =
+            area_of_model model
+
+        translation =
+            V.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = model.imageReferential })
+    in
+    List.concatMap svg_path_of_visible [ ( translation model.expected, "green" ), ( translation model.actual, "blue" ), ( translation model.diff, "red" ) ]
 
 
 svg_window : Model -> E.Element Msg

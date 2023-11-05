@@ -34,3 +34,13 @@ toggle vh =
 
         Hidden h ->
             Visible h
+
+
+map : (a -> b) -> Visibility a -> Visibility b
+map f v =
+    case v of
+        Visible value ->
+            Visible (f value)
+
+        Hidden value ->
+            Hidden (f value)
