@@ -27,7 +27,7 @@ view model =
 
 
 
--- main display dimensions
+-- main display constants
 
 
 svg_window_width_px : Int
@@ -38,6 +38,40 @@ svg_window_width_px =
 svg_window_height_px : Int
 svg_window_height_px =
     1000
+
+
+expected_color : ( number, number, number )
+expected_color =
+    ( 0, 255, 0 )
+
+
+actual_color : ( number, number, number )
+actual_color =
+    ( 0, 0, 255 )
+
+
+diff_color : ( number, number, number )
+diff_color =
+    ( 255, 0, 0 )
+
+
+extra_colors : List ( number, number, number )
+extra_colors =
+    [ ( 255, 255, 0 )
+    , ( 255, 0, 255 )
+    , ( 0, 255, 255 )
+    , ( 255, 125, 125 )
+    , ( 125, 255, 125 )
+    , ( 125, 125, 255 )
+    ]
+
+
+rgb255 ( r, g, b ) =
+    E.rgb255 r g b
+
+
+svg255 ( r, g, b ) =
+    "rgb(" ++ (String.join "," <| List.map String.fromInt [ r, g, b ]) ++ ")"
 
 
 
@@ -186,13 +220,13 @@ triforce_color : Triforce -> E.Color
 triforce_color t =
     case t of
         Expected ->
-            E.rgb255 0 255 0
+            rgb255 expected_color
 
         Actual ->
-            E.rgb255 0 0 255
+            rgb255 actual_color
 
         Diff ->
-            E.rgb255 255 0 0
+            rgb255 diff_color
 
 
 triforce_label : Triforce -> String
@@ -386,7 +420,7 @@ svg_image model =
         |> Maybe.withDefault []
 
 
-svg_path_of_visible : ( V.Visibility Contour, String ) -> List (Svg.Svg msg)
+svg_path_of_visible : ( V.Visibility Contour, ( Int, Int, Int ) ) -> List (Svg.Svg msg)
 svg_path_of_visible ( v, color ) =
     let
         stroke_visibility =
@@ -397,7 +431,7 @@ svg_path_of_visible ( v, color ) =
                 SvgAttr.strokeOpacity "0.0"
 
         base =
-            [ SvgAttr.stroke color, SvgAttr.fillOpacity "0.0", stroke_visibility ]
+            [ SvgAttr.stroke (svg255 color), SvgAttr.fillOpacity "0.0", stroke_visibility ]
 
         contour =
             content v
@@ -414,7 +448,7 @@ svg_contours model =
         translation =
             V.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = TopLeft })
     in
-    List.concatMap svg_path_of_visible [ ( translation model.expected, "green" ), ( translation model.actual, "blue" ), ( translation model.diff, "red" ) ]
+    List.concatMap svg_path_of_visible [ ( translation model.expected, expected_color ), ( translation model.actual, actual_color ), ( translation model.diff, diff_color ) ]
 
 
 svg_window : Model -> E.Element Msg
