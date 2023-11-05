@@ -1,0 +1,47 @@
+name: Site snapshot release
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Release name'     
+        required: true
+        default: 'main-snapshot'
+      text:
+        description: 'Release description'
+        required: true
+        default: 'Snapshot build of the main branch site files to use for development'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '20.9.0'
+
+    - name: Install dependencies
+      run: |
+        npm install -g -y elm
+        npm install -g -y elm-format
+        npm install -g -y elm-test
+
+    - name: Enforce formatting
+      run: make fmt-check
+
+    - name: Build
+      run: make build
+
+    - name: Release site artifacts
+      uses: softprops/action-gh-release@v1
+      with:
+        name: ${{ github.event.inputs.name }}
+        tag_name: snapshot
+        target_commitish: main
+        body: ${{ github.event.inputs.text }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: |
+          page/main.js
+          page/index.html
+        
+      
