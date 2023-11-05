@@ -1,7 +1,6 @@
 module Main exposing (Flags, Model, Msg(..), Triforce(..), init, main, update, view)
 
 import Browser
-import Browser.Events exposing (Visibility(..))
 import Components exposing (..)
 import Contour exposing (Contour, ReferentialOrigin(..), point, translate_contour_to_referential)
 import Contour.Svg
@@ -10,10 +9,11 @@ import Element.Background as EBack
 import Element.Border as EB
 import Element.Input as EI
 import Html exposing (Html)
+import Qol.Cycle as Cycle
 import String exposing (fromFloat)
 import Svg
 import Svg.Attributes as SvgAttr
-import Visibility as V exposing (content, isVisible, toggle)
+import Visibility exposing (Visibility(..), content, isVisible, toggle)
 
 
 main : Program Flags Model Msg
@@ -55,15 +55,14 @@ diff_color =
     ( 255, 0, 0 )
 
 
-extra_colors : List ( number, number, number )
 extra_colors =
-    [ ( 255, 255, 0 )
-    , ( 255, 0, 255 )
-    , ( 0, 255, 255 )
-    , ( 255, 125, 125 )
-    , ( 125, 255, 125 )
-    , ( 125, 125, 255 )
-    ]
+    Cycle.ofList ( 255, 255, 0 )
+        [ ( 255, 0, 255 )
+        , ( 0, 255, 255 )
+        , ( 255, 125, 125 )
+        , ( 125, 255, 125 )
+        , ( 125, 125, 255 )
+        ]
 
 
 rgb255 ( r, g, b ) =
@@ -79,10 +78,11 @@ svg255 ( r, g, b ) =
 
 
 type alias Model =
-    { expected : V.Visibility Contour
-    , actual : V.Visibility Contour
-    , diff : V.Visibility Contour
-    , image : Maybe (V.Visibility ImageSpec)
+    { expected : Visibility Contour
+    , actual : Visibility Contour
+    , diff : Visibility Contour
+    , extras : List ( String, Visibility Contour )
+    , image : Maybe (Visibility ImageSpec)
     , imageScaling : Int
     , contoursReferential : ReferentialOrigin
     }
@@ -119,12 +119,13 @@ type alias Flags =
         , expected : List (List ( Float, Float ))
         , actual : List (List ( Float, Float ))
         , diff : List (List ( Float, Float ))
+        , extras : List ( String, List (List ( Float, Float )) )
         }
 
 
-init_image : Flags -> Maybe (V.Visibility ImageSpec)
+init_image : Flags -> Maybe (Visibility ImageSpec)
 init_image flags =
-    flags |> Maybe.andThen (\f -> f.image) |> Maybe.map V.Visible
+    flags |> Maybe.andThen (\f -> f.image) |> Maybe.map Visible
 
 
 init_contour : List (List ( Float, Float )) -> List (List Contour.Point)
@@ -132,19 +133,24 @@ init_contour flag_contour =
     List.map (\points -> List.map (\( x, y ) -> point x y) points) flag_contour
 
 
-init_expected : Flags -> V.Visibility (List (List Contour.Point))
+init_expected : Flags -> Visibility (List (List Contour.Point))
 init_expected flags =
-    flags |> Maybe.map (\f -> V.Visible (init_contour f.expected)) |> Maybe.withDefault (V.Hidden [ [] ])
+    flags |> Maybe.map (\f -> Visible (init_contour f.expected)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_actual : Flags -> V.Visibility (List (List Contour.Point))
+init_actual : Flags -> Visibility (List (List Contour.Point))
 init_actual flags =
-    flags |> Maybe.map (\f -> V.Visible (init_contour f.actual)) |> Maybe.withDefault (V.Hidden [ [] ])
+    flags |> Maybe.map (\f -> Visible (init_contour f.actual)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_diff : Flags -> V.Visibility (List (List Contour.Point))
+init_diff : Flags -> Visibility (List (List Contour.Point))
 init_diff flags =
-    flags |> Maybe.map (\f -> V.Visible (init_contour f.diff)) |> Maybe.withDefault (V.Hidden [ [] ])
+    flags |> Maybe.map (\f -> Visible (init_contour f.diff)) |> Maybe.withDefault (Hidden [ [] ])
+
+
+init_extras : Flags -> List ( String, Visibility (List (List Contour.Point)) )
+init_extras flags =
+    flags |> Maybe.map (\f -> List.map (\( n, c ) -> ( n, Hidden (init_contour c) )) f.extras) |> Maybe.withDefault []
 
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
@@ -152,6 +158,7 @@ init flags =
     ( { expected = init_expected flags
       , actual = init_actual flags
       , diff = init_diff flags
+      , extras = init_extras flags
       , image = init_image flags
       , imageScaling = 1
       , contoursReferential = TopLeft
@@ -166,6 +173,7 @@ init flags =
 
 type Msg
     = ToggleContour Triforce
+    | ToggleExtra Int
     | ToggleImage
     | ChangeImageScaling Int
     | ChangeLayoutReferential ReferentialOrigin
@@ -184,6 +192,9 @@ update msg model =
             case msg of
                 ToggleContour Expected ->
                     { model | expected = toggle model.expected }
+
+                ToggleExtra index ->
+                    toggled_extra model index
 
                 ToggleContour Actual ->
                     { model | actual = toggle model.actual }
@@ -207,9 +218,26 @@ update msg model =
     ( m, Cmd.none )
 
 
-toggled_image : Model -> Maybe (V.Visibility ImageSpec)
+toggled_image : Model -> Maybe (Visibility ImageSpec)
 toggled_image model =
     model.image |> Maybe.map (\i -> toggle i)
+
+
+toggled_extra : Model -> Int -> Model
+toggled_extra model index =
+    let
+        updated =
+            List.indexedMap
+                (\i ( n, c ) ->
+                    if i == index then
+                        ( n, toggle c )
+
+                    else
+                        ( n, c )
+                )
+                model.extras
+    in
+    { model | extras = updated }
 
 
 
@@ -308,17 +336,33 @@ toggle_image_button v =
 toggle_buttons : Model -> E.Element Msg
 toggle_buttons model =
     E.column [ E.spacing 10 ]
-        ([ toggle_contour_button Expected (V.isVisible model.expected)
-         , toggle_contour_button Actual (V.isVisible model.actual)
-         , toggle_contour_button Diff (V.isVisible model.diff)
+        ([ toggle_contour_button Expected (isVisible model.expected)
+         , toggle_contour_button Actual (isVisible model.actual)
+         , toggle_contour_button Diff (isVisible model.diff)
          ]
             ++ toggle_image_buttons model
+            ++ toggle_extra_buttons model
         )
 
 
 toggle_image_buttons : Model -> List (E.Element Msg)
 toggle_image_buttons model =
-    model.image |> Maybe.map (\img -> [ toggle_image_button (V.isVisible img) ]) |> Maybe.withDefault []
+    model.image |> Maybe.map (\img -> [ toggle_image_button (isVisible img) ]) |> Maybe.withDefault []
+
+
+toggle_extra_button i ( n, v ) =
+    let
+        label =
+            n ++ toggle_show_hide_label (isVisible v)
+
+        color =
+            Cycle.get i extra_colors
+    in
+    EI.button ([ EB.color (rgb255 color) ] ++ default_border_attributes) { onPress = Just (ToggleExtra i), label = E.text label }
+
+
+toggle_extra_buttons model =
+    List.indexedMap (\i e -> toggle_extra_button i e) model.extras
 
 
 
@@ -337,9 +381,14 @@ area_of_image img =
     { origin = point img.refX img.refY, width = w, height = h }
 
 
+extra_contours : Model -> List (Visibility Contour)
+extra_contours model =
+    List.map (\e -> e |> Tuple.second) model.extras
+
+
 area_of_contours : Model -> Contour.Area
 area_of_contours model =
-    [ model.expected, model.actual, model.diff ]
+    ([ model.expected, model.actual, model.diff ] ++ extra_contours model)
         |> List.map content
         |> List.foldl (\c a -> Contour.expand_for_contour a c) Contour.min_area
 
@@ -411,7 +460,7 @@ maybe_if predicate opt =
 svg_image : Model -> List (Svg.Svg msg)
 svg_image model =
     model.image
-        |> maybe_if V.isVisible
+        |> maybe_if isVisible
         |> Maybe.map content
         |> Maybe.map
             (\img ->
@@ -420,7 +469,7 @@ svg_image model =
         |> Maybe.withDefault []
 
 
-svg_path_of_visible : ( V.Visibility Contour, ( Int, Int, Int ) ) -> List (Svg.Svg msg)
+svg_path_of_visible : ( Visibility Contour, ( Int, Int, Int ) ) -> List (Svg.Svg msg)
 svg_path_of_visible ( v, color ) =
     let
         stroke_visibility =
@@ -446,9 +495,12 @@ svg_contours model =
             area_of_model model
 
         translation =
-            V.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = TopLeft })
+            Visibility.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = TopLeft })
+
+        extras =
+            Cycle.associateList (model.extras |> List.map Tuple.second) extra_colors
     in
-    List.concatMap svg_path_of_visible [ ( translation model.expected, expected_color ), ( translation model.actual, actual_color ), ( translation model.diff, diff_color ) ]
+    List.concatMap svg_path_of_visible ([ ( translation model.expected, expected_color ), ( translation model.actual, actual_color ), ( translation model.diff, diff_color ) ] ++ extras)
 
 
 svg_window : Model -> E.Element Msg

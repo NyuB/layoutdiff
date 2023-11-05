@@ -47,6 +47,17 @@ visibility_tests =
     , ( "Visibility at init with flags"
       , \_ -> Expect.equalLists [ True, True, True, True ] (visibility [ init_some.expected, init_some.actual, init_some.diff ] ++ visibility_presence [ init_some.image ])
       )
+    , ( "Extra ontours are hidden by default"
+      , \_ ->
+            let
+                with_extra =
+                    Just { test_flags | extras = [ ( "test", test_expected_contour ) ] }
+
+                model =
+                    Main.init with_extra |> Tuple.first
+            in
+            Expect.equalLists [ False ] (extras_visibility model)
+      )
     , ( "Toggle expected visibility"
       , \_ ->
             let
@@ -87,6 +98,11 @@ visibility_tests =
             Expect.equal [ True ] (visibility_presence [ init_some.image ])
       )
     ]
+
+
+extras_visibility : Main.Model -> List Bool
+extras_visibility model =
+    model.extras |> List.map Tuple.second |> visibility
 
 
 single_svg : Html msg -> HQ.Single msg
@@ -143,9 +159,13 @@ init_some =
     Main.init (Just test_flags) |> Tuple.first
 
 
-test_flags : { image : Maybe { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : List (List a), actual : List (List c), diff : List (List c) }
+type alias FlagContour =
+    List (List ( Float, Float ))
+
+
+test_flags : { image : Maybe { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : FlagContour, actual : FlagContour, diff : FlagContour, extras : List ( String, FlagContour ) }
 test_flags =
-    { image = Just { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ] }
+    { image = Just { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ], extras = [] }
 
 
 init_some_no_image : Main.Model
@@ -155,7 +175,7 @@ init_some_no_image =
 
 init_some_flags : Flags
 init_some_flags =
-    Just { image = Nothing, expected = test_expected_contour, actual = test_actual_contour, diff = test_diff_contour }
+    Just { image = Nothing, expected = test_expected_contour, actual = test_actual_contour, diff = test_diff_contour, extras = [] }
 
 
 test_expected_contour : List (List ( Float, Float ))
