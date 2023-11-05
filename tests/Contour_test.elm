@@ -18,9 +18,22 @@ suite =
                 , xy_diagonal_translation
                 ]
         , describe "Area" <|
-            quick_tests [ square_area, triangle_area, square_triangle_contour_area ]
+            quick_tests
+                [ square_area
+                , triangle_area
+                , square_triangle_contour_area
+                , translate_top_left_to_bot_left
+                , translate_bot_left_to_top_left
+                , translate_bot_left_to_top_right
+                , translate_top_left_to_top_right
+                ]
         , describe "SVG representation" <|
-            quick_tests [ single_point_path, square_path, view_box, view_box_skewed ]
+            quick_tests
+                [ single_point_path
+                , square_path
+                , view_box
+                , view_box_skewed
+                ]
         ]
 
 
@@ -141,6 +154,66 @@ triangle_area =
 square_triangle_contour_area : Quick_test
 square_triangle_contour_area =
     ( "[square, triangle] area", \_ -> Expect.equal { origin = point -5 -3, width = 11, height = 8 } (contour_area [ square, triangle ]) )
+
+
+translate_top_left_to_bot_left : Quick_test
+translate_top_left_to_bot_left =
+    ( "TopLeft -> BottomLeft"
+    , \_ ->
+        let
+            triangle_origin =
+                [ [ point 0 0, point 0 4, point 2 2 ] ]
+
+            targetArea =
+                { origin = zero, width = 10, height = 5 }
+        in
+        Expect.equal [ [ point 0 5, point 0 1, point 2 3 ] ] (translate_contour_to_referential targetArea { contourRef = TopLeft, targetRef = BottomLeft } triangle_origin)
+    )
+
+
+translate_bot_left_to_top_left : Quick_test
+translate_bot_left_to_top_left =
+    ( "BottomLeft -> TopLeft"
+    , \_ ->
+        let
+            triangle_origin =
+                [ [ point 0 0, point 0 4, point 2 2 ] ]
+
+            targetArea =
+                { origin = zero, width = 10, height = 5 }
+        in
+        Expect.equal [ [ point 0 5, point 0 1, point 2 3 ] ] (translate_contour_to_referential targetArea { contourRef = BottomLeft, targetRef = TopLeft } triangle_origin)
+    )
+
+
+translate_bot_left_to_top_right : Quick_test
+translate_bot_left_to_top_right =
+    ( "BottomLeft -> TopRight"
+    , \_ ->
+        let
+            triangle_origin =
+                [ [ point 0 0, point 0 4, point 2 2 ] ]
+
+            targetArea =
+                { origin = zero, width = 10, height = 5 }
+        in
+        Expect.equal [ [ point 10 5, point 10 1, point 8 3 ] ] (translate_contour_to_referential targetArea { contourRef = BottomLeft, targetRef = TopRight } triangle_origin)
+    )
+
+
+translate_top_left_to_top_right : Quick_test
+translate_top_left_to_top_right =
+    ( "TopLeft -> TopRight"
+    , \_ ->
+        let
+            triangle_origin =
+                [ [ point 0 0, point 0 4, point 2 2 ] ]
+
+            targetArea =
+                { origin = zero, width = 10, height = 5 }
+        in
+        Expect.equal [ [ point 10 0, point 10 4, point 8 2 ] ] (translate_contour_to_referential targetArea { contourRef = TopLeft, targetRef = TopRight } triangle_origin)
+    )
 
 
 single_point_path : Quick_test
