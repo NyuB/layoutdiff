@@ -2,6 +2,7 @@ module Main exposing (Flags, Model, Msg(..), Triforce(..), init, main, update, v
 
 import Browser
 import Browser.Events exposing (Visibility(..))
+import Components exposing (..)
 import Contour exposing (Contour, ReferentialOrigin(..), point, translate_contour_to_referential)
 import Contour.Svg
 import Element as E
@@ -22,7 +23,7 @@ main =
 
 view : Model -> Html Msg
 view model =
-    E.layout [] <| E.row [ E.spacing 10 ] [ svg_window model, toggle_buttons model, image_controls model ]
+    E.layout [] <| E.row [ E.spacing 10 ] [ svg_window model, toggle_buttons model, image_controls model, referential_selector [] ChangeLayoutReferential ]
 
 
 
@@ -50,7 +51,6 @@ type alias Model =
     , image : Maybe (V.Visibility ImageSpec)
     , imageScaling : Int
     , contoursReferential : ReferentialOrigin
-    , imageReferential : ReferentialOrigin
     }
 
 
@@ -120,8 +120,7 @@ init flags =
       , diff = init_diff flags
       , image = init_image flags
       , imageScaling = 1
-      , contoursReferential = BottomLeft
-      , imageReferential = TopLeft
+      , contoursReferential = TopLeft
       }
     , Cmd.none
     )
@@ -135,6 +134,7 @@ type Msg
     = ToggleContour Triforce
     | ToggleImage
     | ChangeImageScaling Int
+    | ChangeLayoutReferential ReferentialOrigin
 
 
 type Triforce
@@ -166,6 +166,9 @@ update msg model =
 
                     else
                         model
+
+                ChangeLayoutReferential r ->
+                    { model | contoursReferential = r }
     in
     ( m, Cmd.none )
 
@@ -409,7 +412,7 @@ svg_contours model =
             area_of_model model
 
         translation =
-            V.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = model.imageReferential })
+            V.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = TopLeft })
     in
     List.concatMap svg_path_of_visible [ ( translation model.expected, "green" ), ( translation model.actual, "blue" ), ( translation model.diff, "red" ) ]
 

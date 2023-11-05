@@ -150,18 +150,6 @@ revert_x maxX p =
 translate_point_to_referential : Area -> { contourRef : ReferentialOrigin, targetRef : ReferentialOrigin } -> Point -> Point
 translate_point_to_referential area ref =
     case ( ref.contourRef, ref.targetRef ) of
-        ( TopLeft, TopLeft ) ->
-            identity
-
-        ( BottomLeft, BottomLeft ) ->
-            identity
-
-        ( TopRight, TopRight ) ->
-            identity
-
-        ( BottomRight, BottomRight ) ->
-            identity
-
         ( TopLeft, BottomLeft ) ->
             revert_y area.height
 
@@ -177,11 +165,21 @@ translate_point_to_referential area ref =
         ( TopLeft, TopRight ) ->
             revert_x area.width
 
+        ( TopRight, TopLeft ) ->
+            revert_x area.width
+
         ( BottomLeft, BottomRight ) ->
             revert_x area.width
 
-        ( _, _ ) ->
-            \p -> p |> revert_x area.width |> revert_y area.height
+        ( BottomRight, BottomRight ) ->
+            revert_x area.width
+
+        ( a, b ) ->
+            if a == b then
+                identity
+
+            else
+                \p -> p |> revert_x area.width |> revert_y area.height
 
 
 translate_contour_to_referential : Area -> { contourRef : ReferentialOrigin, targetRef : ReferentialOrigin } -> Contour -> Contour
