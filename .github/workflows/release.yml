@@ -25,7 +25,7 @@ jobs:
         npm install -g -y elm
         npm install -g -y elm-format
         npm install -g -y elm-test
-        apt install -y html-tidy
+        sudo apt-get install -y html-tidy
 
     - name: Enforce formatting
       run: make fmt-check
