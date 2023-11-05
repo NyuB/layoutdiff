@@ -25,14 +25,12 @@ jobs:
         npm install -g -y elm
         npm install -g -y elm-format
         npm install -g -y elm-test
-        sudo apt-get update
-        sudo apt-get install -y html-tidy
 
     - name: Enforce formatting
       run: make fmt-check
 
     - name: Build
-      run: make
+      run: make build
 
     - name: Release site artifacts
       uses: softprops/action-gh-release@v1
