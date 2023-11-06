@@ -1,4 +1,4 @@
-module Main_test exposing (..)
+module Main_test exposing (suite)
 
 import Expect exposing (Expectation)
 import Html exposing (Html)
@@ -36,6 +36,8 @@ html_tests : List Quick_test
 html_tests =
     [ svg_has_size_of_image
     , svg_has_size_of_contours
+    , svg_path_per_contour
+    , svg_path_with_extras
     ]
 
 
@@ -100,16 +102,6 @@ visibility_tests =
     ]
 
 
-extras_visibility : Main.Model -> List Bool
-extras_visibility model =
-    model.extras |> List.map Tuple.second |> visibility
-
-
-single_svg : Html msg -> HQ.Single msg
-single_svg v =
-    v |> HQ.fromHtml |> HQ.find [ tag "svg" ]
-
-
 svg_has_size_of_image : Quick_test
 svg_has_size_of_image =
     ( "SVG window has same dimensions than image"
@@ -132,6 +124,56 @@ svg_has_size_of_contours =
         in
         single_svg v |> HQ.has [ html_attribute "viewBox" "0 0 100 150", html_attribute "width" "1000", html_attribute "height" "1000" ]
     )
+
+
+svg_path_per_contour : Quick_test
+svg_path_per_contour =
+    ( "Each list of point in each contour has one svg path"
+    , \_ ->
+        let
+            v =
+                view init_some_no_image
+
+            expected =
+                6
+
+            -- 2 in expected, 2 in actual, 2 in diff
+        in
+        v |> HQ.fromHtml |> HQ.findAll [ tag "path" ] |> HQ.count (\n -> Expect.equal expected n)
+    )
+
+
+svg_path_with_extras : Quick_test
+svg_path_with_extras =
+    ( "Extras have their svg path too"
+    , \_ ->
+        let
+            with_extra =
+                Just { test_flags | extras = [ ( "test", test_expected_contour ) ] }
+
+            model =
+                Main.init with_extra |> Tuple.first
+
+            v =
+                view model
+
+            expected =
+                5
+
+            -- 1 in expected, 1 in actual, 1 in diff, 2 in one extra
+        in
+        v |> HQ.fromHtml |> HQ.findAll [ tag "path" ] |> HQ.count (\n -> Expect.equal expected n)
+    )
+
+
+extras_visibility : Main.Model -> List Bool
+extras_visibility model =
+    model.extras |> List.map Tuple.second |> visibility
+
+
+single_svg : Html msg -> HQ.Single msg
+single_svg v =
+    v |> HQ.fromHtml |> HQ.find [ tag "svg" ]
 
 
 html_attribute : String -> String -> Selector
