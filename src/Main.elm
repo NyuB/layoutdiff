@@ -23,7 +23,13 @@ main =
 
 view : Model -> Html Msg
 view model =
-    E.layout [] <| E.row [ E.spacing 10 ] [ svg_window model, toggle_buttons model, image_controls model, referential_selector [] ChangeLayoutReferential ]
+    E.layout [] <|
+        E.row [ E.spacing 10 ]
+            [ svg_window model
+            , toggle_buttons model
+            , image_controls model
+            , referential_selector [] model.contoursReferential ChangeLayoutReferential
+            ]
 
 
 

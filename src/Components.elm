@@ -11,12 +11,12 @@ import Element.Events as EE
 -- exposed
 
 
-referential_selector : List (E.Attribute msg) -> (ReferentialOrigin -> msg) -> E.Element msg
-referential_selector attrs onClick =
+referential_selector : List (E.Attribute msg) -> ReferentialOrigin -> (ReferentialOrigin -> msg) -> E.Element msg
+referential_selector attrs current onClick =
     E.row (attrs ++ [ E.height (E.px 100), E.width (E.px 100), E.spacing 5 ])
-        [ E.el [ E.height E.fill, E.width (E.fillPortion 1) ] (referential_selector_left_column onClick)
+        [ E.el [ E.height E.fill, E.width (E.fillPortion 1) ] (referential_selector_left_column current onClick)
         , E.el [ E.height E.fill, E.width (E.fillPortion 1) ] referential_selector_mid_column
-        , E.el [ E.height E.fill, E.width (E.fillPortion 1) ] (referential_selector_right_column onClick)
+        , E.el [ E.height E.fill, E.width (E.fillPortion 1) ] (referential_selector_right_column current onClick)
         ]
 
 
@@ -24,21 +24,21 @@ referential_selector attrs onClick =
 -- internals
 
 
-referential_selector_left_column : (ReferentialOrigin -> msg) -> E.Element msg
-referential_selector_left_column onClick =
+referential_selector_left_column : ReferentialOrigin -> (ReferentialOrigin -> msg) -> E.Element msg
+referential_selector_left_column current onClick =
     E.column [ E.height E.fill, E.width E.fill, E.spacing 5 ]
-        [ referential_selector_item [ EB.roundEach { zeroRound | topLeft = 5 }, EB.widthEach { zeroWidth | top = 2, left = 2 } ] onClick TopLeft
+        [ referential_selector_item [ EB.roundEach { zeroRound | topLeft = 5 }, EB.widthEach { zeroWidth | top = 2, left = 2 } ] current onClick TopLeft
         , referential_selector_void
-        , referential_selector_item [ EB.roundEach { zeroRound | bottomLeft = 5 }, EB.widthEach { zeroWidth | bottom = 2, left = 2 } ] onClick BottomLeft
+        , referential_selector_item [ EB.roundEach { zeroRound | bottomLeft = 5 }, EB.widthEach { zeroWidth | bottom = 2, left = 2 } ] current onClick BottomLeft
         ]
 
 
-referential_selector_right_column : (ReferentialOrigin -> msg) -> E.Element msg
-referential_selector_right_column onClick =
+referential_selector_right_column : ReferentialOrigin -> (ReferentialOrigin -> msg) -> E.Element msg
+referential_selector_right_column current onClick =
     E.column [ E.height E.fill, E.width E.fill, E.spacing 5 ]
-        [ referential_selector_item [ EB.roundEach { zeroRound | topRight = 5 }, EB.widthEach { zeroWidth | top = 2, right = 2 } ] onClick TopRight
+        [ referential_selector_item [ EB.roundEach { zeroRound | topRight = 5 }, EB.widthEach { zeroWidth | top = 2, right = 2 } ] current onClick TopRight
         , referential_selector_void
-        , referential_selector_item [ EB.roundEach { zeroRound | bottomRight = 5 }, EB.widthEach { zeroWidth | bottom = 2, right = 2 } ] onClick BottomRight
+        , referential_selector_item [ EB.roundEach { zeroRound | bottomRight = 5 }, EB.widthEach { zeroWidth | bottom = 2, right = 2 } ] current onClick BottomRight
         ]
 
 
@@ -61,9 +61,17 @@ colored_filled_active c onClick =
     E.el [ EBG.color c, E.width E.fill, E.height E.fill, EE.onClick onClick ] E.none
 
 
-referential_selector_item : List (E.Attribute msg) -> (c -> msg) -> c -> E.Element msg
-referential_selector_item attrs onClick position =
-    E.el (attrs ++ [ E.padding 2, E.width E.fill, E.height (E.fillPortion 1) ]) (colored_filled_active (E.rgb255 0 0 125) (onClick position))
+referential_selector_item : List (E.Attribute msg) -> ReferentialOrigin -> (ReferentialOrigin -> msg) -> ReferentialOrigin -> E.Element msg
+referential_selector_item attrs current onClick position =
+    let
+        color =
+            if current == position then
+                E.rgb255 0 125 0
+
+            else
+                E.rgb255 0 0 125
+    in
+    E.el (attrs ++ [ E.padding 2, E.width E.fill, E.height (E.fillPortion 1) ]) (colored_filled_active color (onClick position))
 
 
 referential_selector_void : E.Element msg
