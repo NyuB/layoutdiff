@@ -3,19 +3,15 @@ module Contour.Svg exposing (d, viewBox)
 import Contour exposing (..)
 
 
-d_L : Point -> String
-d_L p =
-    "L " ++ String.fromFloat (point_x p) ++ " " ++ String.fromFloat (point_y p)
+
+-- exposed
 
 
-d_M : Point -> String
-d_M p =
-    "M " ++ String.fromFloat (point_x p) ++ " " ++ String.fromFloat (point_y p)
-
-
+{-| A suitable value for the d attribute of an svg path corresponding to the given points
+-}
 d : List Point -> String
-d pts =
-    case pts of
+d points =
+    case points of
         [] ->
             ""
 
@@ -29,3 +25,17 @@ d pts =
 viewBox : Area -> String
 viewBox area =
     [ point_x area.origin, point_y area.origin, area.width, area.height ] |> List.map String.fromFloat |> String.join " "
+
+
+
+-- internals
+
+
+d_L : Point -> String
+d_L p =
+    "L " ++ String.fromFloat (point_x p) ++ " " ++ String.fromFloat (point_y p)
+
+
+d_M : Point -> String
+d_M p =
+    "M " ++ String.fromFloat (point_x p) ++ " " ++ String.fromFloat (point_y p)

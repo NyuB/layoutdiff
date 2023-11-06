@@ -1,4 +1,6 @@
-module Visibility exposing (..)
+module Visibility exposing (Visibility(..), content, isVisible, map, toggle)
+
+-- exposed
 
 
 type Visibility a
@@ -16,9 +18,11 @@ isVisible vh =
             False
 
 
+{-| Retrieve the wrapped value, visible or not
+-}
 content : Visibility a -> a
-content vh =
-    case vh of
+content visibility =
+    case visibility of
         Visible v ->
             v
 
@@ -26,9 +30,11 @@ content vh =
             h
 
 
+{-| Switch visibility
+-}
 toggle : Visibility a -> Visibility a
-toggle vh =
-    case vh of
+toggle visibility =
+    case visibility of
         Visible v ->
             Hidden v
 
@@ -36,9 +42,11 @@ toggle vh =
             Visible h
 
 
+{-| Apply f to the wrapped content
+-}
 map : (a -> b) -> Visibility a -> Visibility b
-map f v =
-    case v of
+map f visibility =
+    case visibility of
         Visible value ->
             Visible (f value)
 

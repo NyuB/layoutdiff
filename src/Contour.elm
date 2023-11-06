@@ -1,5 +1,7 @@
 module Contour exposing (Area, Contour, Point, ReferentialOrigin(..), contour_area, expand_by, expand_for_contour, expand_for_point, min_area, point, point_x, point_y, shift_origin, translate_contour_to_referential, zero)
 
+-- exposed
+
 
 type Point
     = Point ( Float, Float )
@@ -20,6 +22,14 @@ type alias Area =
     }
 
 
+{-|
+
+  - TopLeft : x axis grows to the right, y axis grows downward
+  - TopRight : x axis grows to the left, y axis grows downward
+  - BottomLeft : x axis grows to the right, y axis grows upward
+  - BottomRight : x axis grows to the left, y axis grows upward
+
+-}
 type ReferentialOrigin
     = TopLeft
     | BottomLeft
@@ -39,6 +49,21 @@ zero =
 min_area : Area
 min_area =
     { origin = zero, width = 0, height = 0 }
+
+
+point : Float -> Float -> Point
+point x y =
+    Point ( x, y )
+
+
+point_x : Point -> Float
+point_x (Point ( x, _ )) =
+    x
+
+
+point_y : Point -> Float
+point_y (Point ( _, y )) =
+    y
 
 
 {-| Expand area to contain a given point
@@ -62,13 +87,6 @@ expand_for_point a (Point ( x, y )) =
             max y (ay + a.height)
     in
     { origin = point lx ly, width = rx - lx, height = ry - ly }
-
-
-{-| Expand area to contain the given points
--}
-expand_for_points : Area -> List Point -> Area
-expand_for_points area pts =
-    List.foldl (\p a -> expand_for_point a p) area pts
 
 
 {-| Expand area to contain the given points
@@ -105,21 +123,6 @@ contour_area contour =
     List.foldl (\point_list area -> List.foldl (\p a -> expand_for_point a p) area point_list) min_area contour
 
 
-point : Float -> Float -> Point
-point x y =
-    Point ( x, y )
-
-
-point_x : Point -> Float
-point_x (Point ( x, _ )) =
-    x
-
-
-point_y : Point -> Float
-point_y (Point ( _, y )) =
-    y
-
-
 {-| express the Point p in the new referential described by target, assuming p was expressed in the referential origin
 
         shift_origin (point 0 0) (point 1 2) (point 5 5) == point 4 3
@@ -135,6 +138,26 @@ shift_origin origin target p =
             point_y target - point_y origin
     in
     point (point_x p - delta_x) (point_y p - delta_y)
+
+
+{-| Convert the coordinates of contour assuming it was expressed from a referential having origin contourRef of area to a new referential where origin is at targetRef of area
+-}
+translate_contour_to_referential : Area -> { contourRef : ReferentialOrigin, targetRef : ReferentialOrigin } -> Contour -> Contour
+translate_contour_to_referential area ref contour =
+    let
+        translation =
+            translate_point_to_referential area ref
+    in
+    List.map (\pts -> List.map translation pts) contour
+
+
+
+-- internals
+
+
+expand_for_points : Area -> List Point -> Area
+expand_for_points area pts =
+    List.foldl (\p a -> expand_for_point a p) area pts
 
 
 revert_y : Float -> Point -> Point
@@ -180,12 +203,3 @@ translate_point_to_referential area ref =
 
             else
                 \p -> p |> revert_x area.width |> revert_y area.height
-
-
-translate_contour_to_referential : Area -> { contourRef : ReferentialOrigin, targetRef : ReferentialOrigin } -> Contour -> Contour
-translate_contour_to_referential area ref contour =
-    let
-        translation =
-            translate_point_to_referential area ref
-    in
-    List.map (\pts -> List.map translation pts) contour
