@@ -505,8 +505,11 @@ svg_contours model =
 
         extras =
             Cycle.associateList (model.extras |> List.map Tuple.second) extra_colors
+
+        contours =
+            [ ( model.expected, expected_color ), ( model.actual, actual_color ), ( model.diff, diff_color ) ] ++ extras
     in
-    List.concatMap svg_path_of_visible ([ ( translation model.expected, expected_color ), ( translation model.actual, actual_color ), ( translation model.diff, diff_color ) ] ++ extras)
+    List.concatMap svg_path_of_visible (contours |> List.map (\( pts, c ) -> ( translation pts, c )))
 
 
 svg_window : Model -> E.Element Msg
