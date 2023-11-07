@@ -514,4 +514,4 @@ svg_contours model =
 
 svg_window : Model -> E.Element Msg
 svg_window model =
-    E.el ([ E.padding 0, E.width (E.px svg_window_width_px), E.height (E.px svg_window_height_px) ] ++ default_border_attributes) <| E.html <| Svg.svg (svg_area model) (svg_image model ++ svg_contours model)
+    E.el ([ E.padding 10, E.width (E.px svg_window_width_px), E.height (E.px svg_window_height_px) ] ++ default_border_attributes) <| E.html <| Svg.svg (svg_area model) (svg_image model ++ svg_contours model)
