@@ -1,4 +1,4 @@
-module Contour exposing (Area, Contour, Point, ReferentialOrigin(..), contour_area, expand_by, expand_for_contour, expand_for_point, min_area, point, point_x, point_y, shift_origin, shrink_by, translate_contour_to_referential, zero)
+module Contour exposing (Area, Contour, Point, ReferentialOrigin(..), contour_area, expand_by, expand_for_contour, expand_for_point, min_area, point, point_x, point_y, shift_by_horizontal, shift_by_vertical, shift_origin, shrink_by, translate_contour_to_referential, zero)
 
 -- exposed
 
@@ -117,7 +117,7 @@ expand_by delta area =
 
 
 {-| Shrink area by a given margin on all four cardinal directions
-Return an empty area if shrinking by more than width(or height) / 2
+Return orignal area as is if shrinking by more than width (or height) / 2
 -}
 shrink_by : Float -> Area -> Area
 shrink_by delta area =
@@ -134,11 +134,29 @@ shrink_by delta area =
         ( w, h ) =
             ( area.width + 2 * dx, area.height + 2 * dy )
     in
-    if w < 0 || h < 0 then
-        min_area
+    if w <= 0 || h <= 0 then
+        area
 
     else
         { origin = point ax ay, width = w, height = h }
+
+
+shift_by_horizontal : Float -> Area -> Area
+shift_by_horizontal dx area =
+    let
+        x =
+            point_x area.origin + dx
+    in
+    { origin = point (x + dx) (point_y area.origin), width = area.width, height = area.height }
+
+
+shift_by_vertical : Float -> Area -> Area
+shift_by_vertical dy area =
+    let
+        y =
+            point_y area.origin + dy
+    in
+    { origin = point (point_x area.origin) y, width = area.width, height = area.height }
 
 
 {-| Minimal area to contain all points of a given contour

@@ -89,7 +89,7 @@ type alias Model =
     , diff : Visibility Contour
     , extras : List ( String, Visibility Contour )
     , image : Maybe (Visibility ImageSpec)
-    , imageScaling : Int
+    , imageView : ImageView
     , contoursReferential : ReferentialOrigin
     }
 
@@ -102,6 +102,14 @@ type alias ImageSpec =
     , refY : Float
     , pixelWidth : Float
     , pixelHeight : Float
+    }
+
+
+type alias ImageView =
+    { shiftX : Float
+    , shiftY : Float
+    , zoom : Float
+    , scaling : Int
     }
 
 
@@ -159,6 +167,11 @@ init_extras flags =
     flags |> Maybe.map (\f -> List.map (\( n, c ) -> ( n, Hidden (init_contour c) )) f.extras) |> Maybe.withDefault []
 
 
+init_image_view : ImageView
+init_image_view =
+    { scaling = 1, zoom = 0.0, shiftX = 0.0, shiftY = 0.0 }
+
+
 init : Flags -> ( Model, Cmd.Cmd Msg )
 init flags =
     ( { expected = init_expected flags
@@ -166,7 +179,7 @@ init flags =
       , diff = init_diff flags
       , extras = init_extras flags
       , image = init_image flags
-      , imageScaling = 1
+      , imageView = init_image_view
       , contoursReferential = TopLeft
       }
     , Cmd.none
@@ -181,7 +194,7 @@ type Msg
     = ToggleContour Triforce
     | ToggleExtra Int
     | ToggleImage
-    | ChangeImageScaling Int
+    | ChangeImageView ImageView
     | ChangeLayoutReferential ReferentialOrigin
 
 
@@ -211,12 +224,8 @@ update msg model =
                 ToggleImage ->
                     { model | image = toggled_image model }
 
-                ChangeImageScaling scaling ->
-                    if 0 < scaling then
-                        { model | imageScaling = scaling }
-
-                    else
-                        model
+                ChangeImageView imageView ->
+                    changedImageView imageView model
 
                 ChangeLayoutReferential r ->
                     { model | contoursReferential = r }
@@ -244,6 +253,15 @@ toggled_extra model index =
                 model.extras
     in
     { model | extras = updated }
+
+
+changedImageView : ImageView -> Model -> Model
+changedImageView imageView model =
+    if 0 < imageView.scaling && 0.0 <= imageView.zoom then
+        { model | imageView = imageView }
+
+    else
+        model
 
 
 
@@ -287,33 +305,95 @@ toggle_show_hide_label visible =
 
 image_controls : Model -> E.Element Msg
 image_controls model =
-    E.column [ E.spacing 10, E.width E.fill ] [ image_scaling_slider model ]
+    E.column [ E.spacing 10, E.width E.fill ] [ image_scaling_slider model, image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
 
 
 image_scaling_slider : Model -> E.Element Msg
 image_scaling_slider model =
     let
-        sliderTrack =
-            E.behindContent
-                (E.el
-                    [ E.width E.fill
-                    , E.height (E.px 2)
-                    , E.centerY
-                    , EBack.color (E.rgb255 0 0 0)
-                    , EB.rounded 2
-                    ]
-                    E.none
-                )
+        currentView =
+            model.imageView
     in
     EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
-        { onChange = \f -> ChangeImageScaling (floor f)
+        { onChange = \f -> ChangeImageView { currentView | scaling = floor f }
         , label = EI.labelBelow [] (E.text "Image scaling")
         , min = 1.0
         , max = 10.0
         , step = Just 1
         , thumb = EI.defaultThumb
-        , value = toFloat model.imageScaling
+        , value = toFloat model.imageView.scaling
         }
+
+
+image_zoom_slider : Model -> E.Element Msg
+image_zoom_slider model =
+    let
+        currentView =
+            model.imageView
+    in
+    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
+        { onChange = \f -> ChangeImageView { currentView | zoom = f }
+        , label = EI.labelBelow [] (E.text "Zoom")
+        , min = 0.0
+        , max = toFloat (min (imgHeight model) (imgWidth model)) / 2.0
+        , step = Just 1
+        , thumb = EI.defaultThumb
+        , value = model.imageView.zoom
+        }
+
+
+image_shift_x_slider : Model -> E.Element Msg
+image_shift_x_slider model =
+    let
+        currentView =
+            model.imageView
+
+        bound =
+            toFloat (imgWidth model)
+    in
+    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
+        { onChange = \f -> ChangeImageView { currentView | shiftX = f }
+        , label = EI.labelBelow [] (E.text "< X >")
+        , min = 0 - bound
+        , max = bound
+        , step = Just 1.0
+        , thumb = EI.defaultThumb
+        , value = model.imageView.shiftX
+        }
+
+
+image_shift_y_slider : Model -> E.Element Msg
+image_shift_y_slider model =
+    let
+        currentView =
+            model.imageView
+
+        bound =
+            toFloat (imgHeight model)
+    in
+    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
+        { onChange = \f -> ChangeImageView { currentView | shiftY = f }
+        , label = EI.labelBelow [] (E.text "v Y ^")
+        , min = 0 - bound
+        , max = bound
+        , step = Just 1.0
+        , thumb = EI.defaultThumb
+        , value = model.imageView.shiftY
+        }
+
+
+sliderTrack : E.Attribute msg
+sliderTrack =
+    E.behindContent
+        (E.el
+            [ E.width E.fill
+            , E.height (E.px 2)
+            , E.centerY
+            , EBack.color (E.rgb255 0 0 0)
+            , EB.rounded 2
+            ]
+            E.none
+        )
 
 
 default_border_attributes : List (E.Attribute msg)
@@ -399,8 +479,14 @@ area_of_contours model =
         |> List.foldl (\c a -> Contour.expand_for_contour a c) Contour.min_area
 
 
+area_of_model : Model -> Contour.Area
 area_of_model model =
-    model.image |> Maybe.map (\i -> area_of_image (content i)) |> Maybe.withDefault (area_of_contours model)
+    model.image
+        |> Maybe.map (\i -> area_of_image (content i))
+        |> Maybe.withDefault (area_of_contours model)
+        |> Contour.shrink_by model.imageView.zoom
+        |> Contour.shift_by_horizontal model.imageView.shiftX
+        |> Contour.shift_by_vertical model.imageView.shiftY
 
 
 svg_viewbox : Model -> Svg.Attribute Msg
@@ -412,10 +498,10 @@ svg_area_dim : Model -> List (Svg.Attribute msg)
 svg_area_dim model =
     let
         w =
-            min svg_window_width_px (imgWidth model * model.imageScaling)
+            min svg_window_width_px (imgWidth model * model.imageView.scaling)
 
         h =
-            min svg_window_height_px (imgHeight model * model.imageScaling)
+            min svg_window_height_px (imgHeight model * model.imageView.scaling)
     in
     [ svg_width w, svg_height h ]
 

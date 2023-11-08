@@ -260,9 +260,9 @@ shrink_by_too_small_area_x =
                 { origin = point -5 -10, width = 10, height = 20 }
 
             delta =
-                6
+                10
         in
-        Expect.equal min_area (shrink_by delta original)
+        Expect.equal original (shrink_by delta original)
     )
 
 
@@ -277,7 +277,7 @@ shrink_by_too_small_area_y =
             delta =
                 6
         in
-        Expect.equal min_area (shrink_by delta original)
+        Expect.equal original (shrink_by delta original)
     )
 
 
