@@ -26,6 +26,11 @@ suite =
                 , translate_bot_left_to_top_left
                 , translate_bot_left_to_top_right
                 , translate_top_left_to_top_right
+                , expand_by_empty_area
+                , expand_by_rectangle_area
+                , shrink_by_rectangle_area
+                , shrink_by_too_small_area_x
+                , shrink_by_too_small_area_y
                 ]
         , describe "SVG representation" <|
             quick_tests
@@ -213,6 +218,84 @@ translate_top_left_to_top_right =
                 { origin = zero, width = 10, height = 5 }
         in
         Expect.equal [ [ point 10 0, point 10 4, point 8 2 ] ] (translate_contour_to_referential targetArea { contourRef = TopLeft, targetRef = TopRight } triangle_origin)
+    )
+
+
+expand_by_empty_area : Quick_test
+expand_by_empty_area =
+    ( "Expand an empty area"
+    , \_ ->
+        let
+            expected =
+                { origin = point -4.5 -4.5, width = 9, height = 9 }
+        in
+        Expect.equal expected (expand_by 4.5 min_area)
+    )
+
+
+expand_by_rectangle_area : Quick_test
+expand_by_rectangle_area =
+    ( "Expand a rectangular area"
+    , \_ ->
+        let
+            original =
+                { origin = point -5 -10, width = 10, height = 20 }
+
+            delta =
+                5.25
+
+            expected =
+                { origin = point -10.25 -15.25, width = 20.5, height = 30.5 }
+        in
+        Expect.equal expected (expand_by delta original)
+    )
+
+
+shrink_by_too_small_area_x : Quick_test
+shrink_by_too_small_area_x =
+    ( "Shrink an area smaller than shrink delta in x"
+    , \_ ->
+        let
+            original =
+                { origin = point -5 -10, width = 10, height = 20 }
+
+            delta =
+                6
+        in
+        Expect.equal min_area (shrink_by delta original)
+    )
+
+
+shrink_by_too_small_area_y : Quick_test
+shrink_by_too_small_area_y =
+    ( "Shrink an area smaller than shrink delta in y"
+    , \_ ->
+        let
+            original =
+                { origin = point -5 -10, width = 20, height = 10 }
+
+            delta =
+                6
+        in
+        Expect.equal min_area (shrink_by delta original)
+    )
+
+
+shrink_by_rectangle_area : Quick_test
+shrink_by_rectangle_area =
+    ( "Shrink a rectangular area"
+    , \_ ->
+        let
+            original =
+                { origin = point -5 -10, width = 10, height = 20 }
+
+            delta =
+                3.25
+
+            expected =
+                { origin = point -1.75 -6.75, width = 3.5, height = 13.5 }
+        in
+        Expect.equal expected (shrink_by delta original)
     )
 
 
