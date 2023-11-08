@@ -1,9 +1,40 @@
+# Contours diff visualization tool
+
+Simple tool to visualize geometrical polygons, optionally on top of an image
+
+## Usage overview
+
+The website consists of two files [page/index.html](page/index.html) and  the **main.js** build's output (see below for build instructions, or get these from a release).
+The site should be able to fetch a 'spec' file specified by url query parameter.
+`http://<server>:<port>?specUrl=<mySpec>.json`
+
+Examples of such spec files can be seen under the [page/](page/) folder
+For example, assuming a local server serves a directory on port 7777 with the site and the camel.jpg and camelSpec.json files,
+
+```bash
+$> ls my_server_directory
+camel.jpg camelSpec.json index.html main.js
+$> python3 -m http.server --directory my_server_directory 7777
+Serving HTTP on :: port 7777 (http://[::]:7777/) ...
+```
+
+heading to `http://localhost:7777/?specUrl=camelSpec.json` should load the contours and image corresponding to camelSpec.json in your browser.
+
+![camelSpec screenshot](docs/images/CamelCapture.PNG)
+
+### Note on coordinates referential
+
+All the coordinates (contour and image) are initially assumed to be expressed from the top left corner of the display. You can indicate that the contours are expressed from another corner referential via the dedicated widget.
+
+![bottom left corner selectedt](docs/images/CornerReferential.PNG)
+
+
 ## Deploy locally
 + Build
 ```bash
 make build
 ```
-deploy the site files in **page/**
+deploy the site files in [page/](page/)
 + Serve 
 ```bash
 python3 -m http.server --directory page <port>
