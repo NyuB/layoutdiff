@@ -11,6 +11,10 @@ import Test.Html.Selector exposing (..)
 import Visibility exposing (..)
 
 
+
+-- test suites
+
+
 suite : Test
 suite =
     describe "Main logic"
@@ -111,9 +115,13 @@ svg_has_size_of_image =
     , \_ ->
         let
             v =
-                view init_some
+                view init_some |> HQ.fromHtml
         in
-        single_svg v |> HQ.has [ html_attribute "viewBox" "0 0 10 20", html_attribute "width" "10", html_attribute "height" "20" ]
+        Expect.all
+            [ single_svg >> svg_viewBox_is "0 0 10 20"
+            , single_svg >> svg_width_height_are 10 20
+            ]
+            v
     )
 
 
@@ -123,9 +131,13 @@ svg_has_size_of_contours =
     , \_ ->
         let
             v =
-                view init_some_no_image
+                view init_some_no_image |> HQ.fromHtml
         in
-        single_svg v |> HQ.has [ html_attribute "viewBox" "0 0 100 150", html_attribute "width" "1000", html_attribute "height" "1000" ]
+        Expect.all
+            [ single_svg >> svg_viewBox_is "0 0 100 150"
+            , single_svg >> svg_width_height_are 1000 1000
+            ]
+            v
     )
 
 
@@ -135,14 +147,14 @@ svg_path_per_contour =
     , \_ ->
         let
             v =
-                view init_some_no_image
+                view init_some_no_image |> HQ.fromHtml
 
             expected =
                 6
 
             -- 2 in expected, 2 in actual, 2 in diff
         in
-        v |> HQ.fromHtml |> HQ.findAll [ tag "path" ] |> HQ.count (\n -> Expect.equal expected n)
+        v |> HQ.findAll [ tag "path" ] |> HQ.count (\n -> Expect.equal expected n)
     )
 
 
@@ -158,14 +170,14 @@ svg_path_with_extras =
                 Main.init with_extra |> Tuple.first
 
             v =
-                view model
+                view model |> HQ.fromHtml
 
             expected =
                 5
 
             -- 1 in expected, 1 in actual, 1 in diff, 2 in one extra
         in
-        v |> HQ.fromHtml |> HQ.findAll [ tag "path" ] |> HQ.count (\n -> Expect.equal expected n)
+        v |> HQ.findAll [ tag "path" ] |> HQ.count (\n -> Expect.equal expected n)
     )
 
 
@@ -185,7 +197,7 @@ svg_path_referential_change =
         in
         Expect.all
             [ svg_viewBox_is "0 0 10 10"
-            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 10 L 10 0z" ]
+            , HQ.find visible_svg_path >> svg_path_is "M 0 10 L 10 0z"
             ]
             updated_view
     )
@@ -208,11 +220,15 @@ svg_path_zoom =
                 updated |> view |> HQ.fromHtml
         in
         Expect.all
-            [ svg_viewBox_is "4 4 2 2"
-            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 0 L 10 10z" ]
+            [ single_svg >> svg_viewBox_is "4 4 2 2"
+            , HQ.find visible_svg_path >> svg_path_is "M 0 0 L 10 10z"
             ]
             updated_view
     )
+
+
+
+-- helpers
 
 
 zoom : Float -> Main.Model -> ( Main.Model, Cmd Msg )
@@ -229,9 +245,9 @@ extras_visibility model =
     model.extras |> List.map Tuple.second |> visibility
 
 
-single_svg : Html msg -> HQ.Single msg
+single_svg : HQ.Single msg -> HQ.Single msg
 single_svg v =
-    v |> HQ.fromHtml |> HQ.find [ tag "svg" ]
+    HQ.find [ tag "svg" ] v
 
 
 visible_svg_path : List Selector
@@ -239,8 +255,19 @@ visible_svg_path =
     [ tag "path", html_attribute "stroke-opacity" "1.0" ]
 
 
+svg_viewBox_is : String -> HQ.Single msg -> Expectation
 svg_viewBox_is vb query =
-    query |> HQ.find [ tag "svg" ] |> HQ.has [ html_attribute "viewBox" vb ]
+    query |> HQ.has [ html_attribute "viewBox" vb ]
+
+
+svg_path_is : String -> HQ.Single msg -> Expectation
+svg_path_is d query =
+    query |> HQ.has [ html_attribute "d" d ]
+
+
+svg_width_height_are : Int -> Int -> HQ.Single msg -> Expectation
+svg_width_height_are w h query =
+    HQ.has [ html_attribute "width" (String.fromInt w), html_attribute "height" (String.fromInt h) ] query
 
 
 html_attribute : String -> String -> Selector
