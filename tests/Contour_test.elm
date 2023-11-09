@@ -306,7 +306,7 @@ single_point_path =
 
 square_path : Quick_test
 square_path =
-    ( "Square path", \_ -> Expect.equal "M 0 0 L 5 0 L 5 5 L 0 5" (Contour.Svg.d square) )
+    ( "Square path", \_ -> Expect.equal "M 0 0 L 5 0 L 5 5 L 0 5z" (Contour.Svg.d square) )
 
 
 view_box : Quick_test

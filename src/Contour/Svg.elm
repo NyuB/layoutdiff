@@ -19,7 +19,7 @@ d points =
             d_M single
 
         first :: rest ->
-            d_M first ++ " " ++ String.join " " (List.map d_L rest)
+            d_M first ++ " " ++ String.join " " (List.map d_L rest) |> closed
 
 
 viewBox : Area -> String
@@ -39,3 +39,11 @@ d_L p =
 d_M : Point -> String
 d_M p =
     "M " ++ String.fromFloat (point_x p) ++ " " ++ String.fromFloat (point_y p)
+
+
+closed path_str =
+    if String.endsWith "z" path_str then
+        path_str
+
+    else
+        path_str ++ "z"

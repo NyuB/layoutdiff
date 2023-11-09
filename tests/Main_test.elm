@@ -185,7 +185,7 @@ svg_path_referential_change =
         in
         Expect.all
             [ svg_viewBox_is "0 0 10 10"
-            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 10 L 10 0" ]
+            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 10 L 10 0z" ]
             ]
             updated_view
     )
@@ -209,7 +209,7 @@ svg_path_zoom =
         in
         Expect.all
             [ svg_viewBox_is "4 4 2 2"
-            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 0 L 10 10" ]
+            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 0 L 10 10z" ]
             ]
             updated_view
     )
