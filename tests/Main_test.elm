@@ -1,5 +1,6 @@
 module Main_test exposing (suite)
 
+import Contour exposing (ReferentialOrigin(..), point)
 import Expect exposing (Expectation)
 import Html exposing (Html)
 import Html.Attributes
@@ -38,6 +39,8 @@ html_tests =
     , svg_has_size_of_contours
     , svg_path_per_contour
     , svg_path_with_extras
+    , svg_path_referential_change
+    , svg_path_zoom
     ]
 
 
@@ -166,6 +169,61 @@ svg_path_with_extras =
     )
 
 
+svg_path_referential_change : Quick_test
+svg_path_referential_change =
+    ( "When changing referential, path are converted to adjust to viewBox coordinates"
+    , \_ ->
+        let
+            two_points_in_diff_only =
+                init_two_points_in_diff ( 0, 0 ) ( 10, 10 )
+
+            updated =
+                update (ChangeLayoutReferential BottomLeft) two_points_in_diff_only |> Tuple.first
+
+            updated_view =
+                updated |> view |> HQ.fromHtml
+        in
+        Expect.all
+            [ svg_viewBox_is "0 0 10 10"
+            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 10 L 10 0" ]
+            ]
+            updated_view
+    )
+
+
+svg_path_zoom : Quick_test
+svg_path_zoom =
+    ( "When zooming, viewBox is adjusted but path coordinates stay the same"
+    , \_ ->
+        let
+            two_points_in_diff_only =
+                init_two_points_in_diff ( 0, 0 ) ( 10, 10 )
+
+            updated =
+                two_points_in_diff_only
+                    |> zoom 4.0
+                    |> Tuple.first
+
+            updated_view =
+                updated |> view |> HQ.fromHtml
+        in
+        Expect.all
+            [ svg_viewBox_is "4 4 2 2"
+            , \v -> v |> HQ.find visible_svg_path |> HQ.has [ html_attribute "d" "M 0 0 L 10 10" ]
+            ]
+            updated_view
+    )
+
+
+zoom : Float -> Main.Model -> ( Main.Model, Cmd Msg )
+zoom z m =
+    let
+        iv =
+            m.imageView
+    in
+    update (ChangeImageView { iv | zoom = z }) m
+
+
 extras_visibility : Main.Model -> List Bool
 extras_visibility model =
     model.extras |> List.map Tuple.second |> visibility
@@ -174,6 +232,15 @@ extras_visibility model =
 single_svg : Html msg -> HQ.Single msg
 single_svg v =
     v |> HQ.fromHtml |> HQ.find [ tag "svg" ]
+
+
+visible_svg_path : List Selector
+visible_svg_path =
+    [ tag "path", html_attribute "stroke-opacity" "1.0" ]
+
+
+svg_viewBox_is vb query =
+    query |> HQ.find [ tag "svg" ] |> HQ.has [ html_attribute "viewBox" vb ]
 
 
 html_attribute : String -> String -> Selector
@@ -189,6 +256,11 @@ visibility l =
 visibility_presence : List (Maybe (Visibility a)) -> List Bool
 visibility_presence l =
     List.map (\vo -> vo |> Maybe.map isVisible |> Maybe.withDefault False) l
+
+
+init_two_points_in_diff : ( Float, Float ) -> ( Float, Float ) -> Main.Model
+init_two_points_in_diff ( x, y ) ( j, i ) =
+    { init_none | expected = Hidden [ [] ], actual = Hidden [ [] ], diff = Visible [ [ point x y, point j i ] ] }
 
 
 init_none : Main.Model

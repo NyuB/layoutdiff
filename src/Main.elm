@@ -481,12 +481,17 @@ area_of_contours model =
 
 area_of_model : Model -> Contour.Area
 area_of_model model =
-    model.image
-        |> Maybe.map (\i -> area_of_image (content i))
-        |> Maybe.withDefault (area_of_contours model)
+    full_area_of_model model
         |> Contour.shrink_by model.imageView.zoom
         |> Contour.shift_by_horizontal model.imageView.shiftX
         |> Contour.shift_by_vertical model.imageView.shiftY
+
+
+full_area_of_model : Model -> Contour.Area
+full_area_of_model model =
+    model.image
+        |> Maybe.map (\i -> area_of_image (content i))
+        |> Maybe.withDefault (area_of_contours model)
 
 
 svg_viewbox : Model -> Svg.Attribute Msg
@@ -584,7 +589,7 @@ svg_contours : Model -> List (Svg.Svg Msg)
 svg_contours model =
     let
         area =
-            area_of_model model
+            full_area_of_model model
 
         translation =
             Visibility.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = TopLeft })
