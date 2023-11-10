@@ -1,10 +1,15 @@
-module Components exposing (referential_selector)
+module Components exposing (CustomEvent, el_event, html_event, mouse_wheel_listener, referential_selector, svg_event)
 
 import Contour exposing (ReferentialOrigin(..))
 import Element as E
 import Element.Background as EBG
 import Element.Border as EB
 import Element.Events as EE
+import Html
+import Html.Events
+import Json.Decode as Decode
+import Svg
+import Svg.Events
 
 
 
@@ -20,8 +25,42 @@ referential_selector attrs current onClick =
         ]
 
 
+mouse_wheel_listener : (Float -> msg) -> CustomEvent msg
+mouse_wheel_listener f =
+    let
+        decoder =
+            Decode.field "deltaY" Decode.float
+                |> Decode.map f
+                |> Decode.map (\z -> { message = z, preventDefault = True, stopPropagation = True })
+    in
+    CustomEvent ( "wheel", decoder )
+
+
+svg_event : CustomEvent msg -> Svg.Attribute msg
+svg_event (CustomEvent ( label, decoder )) =
+    Svg.Events.custom label decoder
+
+
+html_event : CustomEvent msg -> Html.Attribute msg
+html_event (CustomEvent ( label, decoder )) =
+    Html.Events.custom label decoder
+
+
+el_event : CustomEvent msg -> E.Attribute msg
+el_event custom =
+    E.htmlAttribute (html_event custom)
+
+
 
 -- internals
+
+
+type alias LabeledHandler msg =
+    ( String, Decode.Decoder { message : msg, stopPropagation : Bool, preventDefault : Bool } )
+
+
+type CustomEvent msg
+    = CustomEvent (LabeledHandler msg)
 
 
 referential_selector_left_column : ReferentialOrigin -> (ReferentialOrigin -> msg) -> E.Element msg

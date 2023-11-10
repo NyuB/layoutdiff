@@ -8,7 +8,7 @@ import Element as E
 import Element.Background as EBack
 import Element.Border as EB
 import Element.Input as EI
-import Html exposing (Html)
+import Html exposing (Html, li)
 import Init exposing (ImageSpec, Init)
 import Json.Decode as Json
 import Qol.Cycle as Cycle
@@ -26,7 +26,7 @@ main =
 view : Model -> Html Msg
 view model =
     E.layout [] <|
-        E.row [ E.spacing 10 ]
+        E.row [ E.spacing 20 ]
             [ svg_window model
             , toggle_buttons model
             , image_controls model
@@ -109,6 +109,7 @@ type alias DevelopmentSettings =
     { imageScaling : Int
     , strokeWidth : Float
     , strokeWidthCurrent : String
+    , zoomStep : Float
     }
 
 
@@ -167,7 +168,7 @@ init_image_view =
 
 initDevSettings : DevelopmentSettings
 initDevSettings =
-    { imageScaling = 1, strokeWidth = 0.5, strokeWidthCurrent = "0.5" }
+    { imageScaling = 1, strokeWidth = 0.5, strokeWidthCurrent = "0.5", zoomStep = 0.5 }
 
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
@@ -331,28 +332,73 @@ toggle_show_hide_label visible =
 
 image_controls : Model -> E.Element Msg
 image_controls model =
-    E.column [ E.spacing 10, E.width E.fill ] [ image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
+    E.column [ E.spacing 10 ] [ image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
 
 
 development_settings : Model -> E.Element Msg
 development_settings model =
-    E.column [ E.width E.fill, E.spacing 10 ] [ image_scaling_slider model, stroke_width_field model ]
+    E.column [ E.width E.fill, E.spacing 10 ] [ image_scaling_slider model.developmentSettings, stroke_width_field model, wheel_display model.imageFraming, zoom_step_field model.developmentSettings ]
 
 
-image_scaling_slider : Model -> E.Element Msg
-image_scaling_slider model =
-    let
-        current =
-            model.developmentSettings
-    in
+image_scaling_slider : DevelopmentSettings -> E.Element Msg
+image_scaling_slider devSettings =
     EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
-        { onChange = \f -> ChangeDevSettings { current | imageScaling = floor f }
+        { onChange = \f -> ChangeDevSettings { devSettings | imageScaling = floor f }
         , label = EI.labelBelow [] (E.text "Image scaling")
         , min = 1.0
         , max = 10.0
         , step = Just 1
         , thumb = EI.defaultThumb
-        , value = toFloat model.developmentSettings.imageScaling
+        , value = toFloat devSettings.imageScaling
+        }
+
+
+wheel_display : ImageFraming -> E.Element Msg
+wheel_display imageFraming =
+    E.row
+        [ E.width E.fill
+        , E.spacing 5
+        ]
+        [ E.el ([ E.width (E.fillPortion 3) ] ++ default_border_attributes) (E.text "Zoom")
+        , E.el ([ E.width (E.fillPortion 1) ] ++ default_border_attributes) (E.text (String.fromFloat imageFraming.zoom |> String.slice 0 10))
+        ]
+
+
+mouse_wheel_event_listener : Model -> Components.CustomEvent Msg
+mouse_wheel_event_listener model =
+    Components.mouse_wheel_listener (\f -> ChangeImageView (updateZoom f model))
+
+
+updateZoom : Float -> Model -> ImageFraming
+updateZoom z model =
+    let
+        imageFraming =
+            model.imageFraming
+
+        step =
+            model.developmentSettings.zoomStep
+    in
+    if z == 0 then
+        imageFraming
+
+    else if z < 0 then
+        { imageFraming | zoom = imageFraming.zoom + step }
+
+    else
+        { imageFraming | zoom = imageFraming.zoom - step }
+
+
+zoom_step_field : DevelopmentSettings -> E.Element Msg
+zoom_step_field devSettings =
+    EI.text []
+        { label = EI.labelBelow [] (E.text "Zoom step")
+        , placeholder = Nothing
+        , text = String.fromFloat devSettings.zoomStep
+        , onChange =
+            \s ->
+                String.toFloat s
+                    |> Maybe.map (\f -> ChangeDevSettings { devSettings | zoomStep = f })
+                    |> Maybe.withDefault (ChangeDevSettings devSettings)
         }
 
 
@@ -651,4 +697,17 @@ svg_contours model =
 
 svg_window : Model -> E.Element Msg
 svg_window model =
-    E.el ([ E.padding 10, E.width (E.px svg_window_width_px), E.height (E.px svg_window_height_px) ] ++ default_border_attributes) <| E.html <| Svg.svg (svg_area model) (svg_image model ++ svg_contours model)
+    let
+        svgListenWheel =
+            mouse_wheel_event_listener model |> Components.svg_event
+
+        svgElements =
+            svg_image model ++ svg_contours model
+
+        svgAttributes =
+            svg_area model ++ [ svgListenWheel ]
+
+        svgContent =
+            E.html (Svg.svg svgAttributes svgElements)
+    in
+    E.el ([ E.padding 10, E.width (E.px svg_window_width_px), E.height (E.px svg_window_height_px) ] ++ default_border_attributes) svgContent
