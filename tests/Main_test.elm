@@ -4,11 +4,17 @@ import Contour exposing (ReferentialOrigin(..), point)
 import Expect exposing (Expectation)
 import Html exposing (Html)
 import Html.Attributes
+import Init
+import Json.Encode
 import Main exposing (Flags, Msg(..), Triforce(..), update, view)
 import Test exposing (..)
 import Test.Html.Query as HQ
 import Test.Html.Selector exposing (..)
 import Visibility exposing (..)
+
+
+type alias Json =
+    Json.Encode.Value
 
 
 
@@ -60,7 +66,7 @@ visibility_tests =
       , \_ ->
             let
                 with_extra =
-                    Just { test_flags | extras = [ ( "test", test_expected_contour ) ] }
+                    just_flags { test_flags | extras = [ ( "test", test_expected_contour ) ] }
 
                 model =
                     Main.init with_extra |> Tuple.first
@@ -164,7 +170,7 @@ svg_path_with_extras =
     , \_ ->
         let
             with_extra =
-                Just { test_flags | extras = [ ( "test", test_expected_contour ) ] }
+                just_flags { test_flags | extras = [ ( "test", test_expected_contour ) ] }
 
             model =
                 Main.init with_extra |> Tuple.first
@@ -297,39 +303,43 @@ init_none =
 
 init_some : Main.Model
 init_some =
-    Main.init (Just test_flags) |> Tuple.first
+    Main.init (just_flags test_flags) |> Tuple.first
 
 
 type alias FlagContour =
     List (List ( Float, Float ))
 
 
-test_flags : { image : Maybe { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : FlagContour, actual : FlagContour, diff : FlagContour, extras : List ( String, FlagContour ) }
+type alias ExtraFlagContour =
+    ( String, FlagContour )
+
+
+test_flags : { image : Maybe { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : FlagContour, actual : FlagContour, diff : FlagContour, extras : List ExtraFlagContour }
 test_flags =
     { image = Just { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ], extras = [] }
 
 
 init_some_no_image : Main.Model
 init_some_no_image =
-    Main.init init_some_flags |> Tuple.first
+    Main.init (just_flags init_some_flags) |> Tuple.first
 
 
-init_some_flags : Flags
+init_some_flags : { image : Maybe a, expected : FlagContour, actual : FlagContour, diff : FlagContour, extras : List b }
 init_some_flags =
-    Just { image = Nothing, expected = test_expected_contour, actual = test_actual_contour, diff = test_diff_contour, extras = [] }
+    { image = Nothing, expected = test_expected_contour, actual = test_actual_contour, diff = test_diff_contour, extras = [] }
 
 
-test_expected_contour : List (List ( Float, Float ))
+test_expected_contour : FlagContour
 test_expected_contour =
     [ base_contour, diff_expected ]
 
 
-test_actual_contour : List (List ( Float, Float ))
+test_actual_contour : FlagContour
 test_actual_contour =
     [ base_contour, diff_actual ]
 
 
-test_diff_contour : List (List ( Float, Float ))
+test_diff_contour : FlagContour
 test_diff_contour =
     [ diff_expected, diff_actual ]
 
@@ -347,3 +357,8 @@ diff_expected =
 diff_actual : List ( Float, Float )
 diff_actual =
     [ ( 50, 100 ), ( 75, 150 ), ( 100, 100 ), ( 50, 100 ) ]
+
+
+just_flags : Init.Init -> Maybe Json.Encode.Value
+just_flags f =
+    Just <| Init.encode f

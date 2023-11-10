@@ -9,6 +9,8 @@ import Element.Background as EBack
 import Element.Border as EB
 import Element.Input as EI
 import Html exposing (Html)
+import Init exposing (ImageSpec, Init)
+import Json.Decode as Json
 import Qol.Cycle as Cycle
 import String exposing (fromFloat)
 import Svg
@@ -96,17 +98,6 @@ type alias Model =
     }
 
 
-type alias ImageSpec =
-    { url : String
-    , width : Int
-    , height : Int
-    , refX : Float
-    , refY : Float
-    , pixelWidth : Float
-    , pixelHeight : Float
-    }
-
-
 type alias ImageFraming =
     { shiftX : Float
     , shiftY : Float
@@ -136,18 +127,12 @@ imgHeight model =
 
 
 type alias Flags =
-    Maybe
-        { image : Maybe ImageSpec
-        , expected : List (List ( Float, Float ))
-        , actual : List (List ( Float, Float ))
-        , diff : List (List ( Float, Float ))
-        , extras : List ( String, List (List ( Float, Float )) )
-        }
+    Maybe Json.Value
 
 
-init_image : Flags -> Maybe (Visibility ImageSpec)
-init_image flags =
-    flags |> Maybe.andThen (\f -> f.image) |> Maybe.map Visible
+init_image : Maybe Init -> Maybe (Visibility ImageSpec)
+init_image i =
+    i |> Maybe.andThen (\f -> f.image) |> Maybe.map Visible
 
 
 init_contour : List (List ( Float, Float )) -> List (List Contour.Point)
@@ -155,22 +140,22 @@ init_contour flag_contour =
     List.map (\points -> List.map (\( x, y ) -> point x y) points) flag_contour
 
 
-init_expected : Flags -> Visibility (List (List Contour.Point))
+init_expected : Maybe Init -> Visibility (List (List Contour.Point))
 init_expected flags =
     flags |> Maybe.map (\f -> Visible (init_contour f.expected)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_actual : Flags -> Visibility (List (List Contour.Point))
+init_actual : Maybe Init -> Visibility (List (List Contour.Point))
 init_actual flags =
     flags |> Maybe.map (\f -> Visible (init_contour f.actual)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_diff : Flags -> Visibility (List (List Contour.Point))
+init_diff : Maybe Init -> Visibility (List (List Contour.Point))
 init_diff flags =
     flags |> Maybe.map (\f -> Visible (init_contour f.diff)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_extras : Flags -> List ( String, Visibility (List (List Contour.Point)) )
+init_extras : Maybe Init -> List ( String, Visibility (List (List Contour.Point)) )
 init_extras flags =
     flags |> Maybe.map (\f -> List.map (\( n, c ) -> ( n, Hidden (init_contour c) )) f.extras) |> Maybe.withDefault []
 
@@ -187,11 +172,15 @@ initDevSettings =
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
 init flags =
-    ( { expected = init_expected flags
-      , actual = init_actual flags
-      , diff = init_diff flags
-      , extras = init_extras flags
-      , image = init_image flags
+    let
+        decoded =
+            flags |> Maybe.andThen (Json.decodeValue Init.decode >> Result.toMaybe)
+    in
+    ( { expected = init_expected decoded
+      , actual = init_actual decoded
+      , diff = init_diff decoded
+      , extras = init_extras decoded
+      , image = init_image decoded
       , imageFraming = init_image_view
       , contoursReferential = TopLeft
       , developmentSettings = initDevSettings
