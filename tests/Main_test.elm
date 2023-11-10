@@ -235,7 +235,7 @@ zoom : Float -> Main.Model -> ( Main.Model, Cmd Msg )
 zoom z m =
     let
         iv =
-            m.imageView
+            m.imageFraming
     in
     update (ChangeImageView { iv | zoom = z }) m
 

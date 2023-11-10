@@ -29,6 +29,7 @@ view model =
             , toggle_buttons model
             , image_controls model
             , referential_selector [] model.contoursReferential ChangeLayoutReferential
+            , development_settings model
             ]
 
 
@@ -89,8 +90,9 @@ type alias Model =
     , diff : Visibility Contour
     , extras : List ( String, Visibility Contour )
     , image : Maybe (Visibility ImageSpec)
-    , imageView : ImageView
+    , imageFraming : ImageFraming
     , contoursReferential : ReferentialOrigin
+    , developmentSettings : DevelopmentSettings
     }
 
 
@@ -105,11 +107,17 @@ type alias ImageSpec =
     }
 
 
-type alias ImageView =
+type alias ImageFraming =
     { shiftX : Float
     , shiftY : Float
     , zoom : Float
-    , scaling : Int
+    }
+
+
+type alias DevelopmentSettings =
+    { imageScaling : Int
+    , strokeWidth : Float
+    , strokeWidthCurrent : String
     }
 
 
@@ -167,9 +175,14 @@ init_extras flags =
     flags |> Maybe.map (\f -> List.map (\( n, c ) -> ( n, Hidden (init_contour c) )) f.extras) |> Maybe.withDefault []
 
 
-init_image_view : ImageView
+init_image_view : ImageFraming
 init_image_view =
-    { scaling = 1, zoom = 0.0, shiftX = 0.0, shiftY = 0.0 }
+    { zoom = 0.0, shiftX = 0.0, shiftY = 0.0 }
+
+
+initDevSettings : DevelopmentSettings
+initDevSettings =
+    { imageScaling = 1, strokeWidth = 0.5, strokeWidthCurrent = "0.5" }
 
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
@@ -179,8 +192,9 @@ init flags =
       , diff = init_diff flags
       , extras = init_extras flags
       , image = init_image flags
-      , imageView = init_image_view
+      , imageFraming = init_image_view
       , contoursReferential = TopLeft
+      , developmentSettings = initDevSettings
       }
     , Cmd.none
     )
@@ -194,8 +208,9 @@ type Msg
     = ToggleContour Triforce
     | ToggleExtra Int
     | ToggleImage
-    | ChangeImageView ImageView
+    | ChangeImageView ImageFraming
     | ChangeLayoutReferential ReferentialOrigin
+    | ChangeDevSettings DevelopmentSettings
 
 
 type Triforce
@@ -229,6 +244,9 @@ update msg model =
 
                 ChangeLayoutReferential r ->
                     { model | contoursReferential = r }
+
+                ChangeDevSettings ds ->
+                    changedDevSettings ds model
     in
     ( m, Cmd.none )
 
@@ -255,13 +273,32 @@ toggled_extra model index =
     { model | extras = updated }
 
 
-changedImageView : ImageView -> Model -> Model
+changedImageView : ImageFraming -> Model -> Model
 changedImageView imageView model =
-    if 0 < imageView.scaling && 0.0 <= imageView.zoom then
-        { model | imageView = imageView }
+    if 0.0 <= imageView.zoom then
+        { model | imageFraming = imageView }
 
     else
         model
+
+
+changedDevSettings : DevelopmentSettings -> Model -> Model
+changedDevSettings ds model =
+    let
+        scaled =
+            if 0 < ds.imageScaling then
+                ds
+
+            else
+                model.developmentSettings
+
+        stroked =
+            String.toFloat ds.strokeWidthCurrent |> Maybe.map (\f -> { scaled | strokeWidth = f }) |> Maybe.withDefault scaled
+
+        withCurrent =
+            { stroked | strokeWidthCurrent = ds.strokeWidthCurrent }
+    in
+    { model | developmentSettings = withCurrent }
 
 
 
@@ -305,23 +342,43 @@ toggle_show_hide_label visible =
 
 image_controls : Model -> E.Element Msg
 image_controls model =
-    E.column [ E.spacing 10, E.width E.fill ] [ image_scaling_slider model, image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
+    E.column [ E.spacing 10, E.width E.fill ] [ image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
+
+
+development_settings : Model -> E.Element Msg
+development_settings model =
+    E.column [ E.width E.fill, E.spacing 10 ] [ image_scaling_slider model, stroke_width_field model ]
 
 
 image_scaling_slider : Model -> E.Element Msg
 image_scaling_slider model =
     let
-        currentView =
-            model.imageView
+        current =
+            model.developmentSettings
     in
     EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
-        { onChange = \f -> ChangeImageView { currentView | scaling = floor f }
+        { onChange = \f -> ChangeDevSettings { current | imageScaling = floor f }
         , label = EI.labelBelow [] (E.text "Image scaling")
         , min = 1.0
         , max = 10.0
         , step = Just 1
         , thumb = EI.defaultThumb
-        , value = toFloat model.imageView.scaling
+        , value = toFloat model.developmentSettings.imageScaling
+        }
+
+
+stroke_width_field : Model -> E.Element Msg
+stroke_width_field model =
+    let
+        current =
+            model.developmentSettings
+    in
+    EI.text [ E.width E.fill, E.height E.fill ]
+        { onChange =
+            \t -> ChangeDevSettings { current | strokeWidthCurrent = t }
+        , text = current.strokeWidthCurrent
+        , placeholder = Nothing
+        , label = EI.labelBelow [] (E.text "Stroke width")
         }
 
 
@@ -329,7 +386,7 @@ image_zoom_slider : Model -> E.Element Msg
 image_zoom_slider model =
     let
         currentView =
-            model.imageView
+            model.imageFraming
     in
     EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
         { onChange = \f -> ChangeImageView { currentView | zoom = f }
@@ -338,7 +395,7 @@ image_zoom_slider model =
         , max = toFloat (min (imgHeight model) (imgWidth model)) / 2.0
         , step = Just 1
         , thumb = EI.defaultThumb
-        , value = model.imageView.zoom
+        , value = model.imageFraming.zoom
         }
 
 
@@ -346,7 +403,7 @@ image_shift_x_slider : Model -> E.Element Msg
 image_shift_x_slider model =
     let
         currentView =
-            model.imageView
+            model.imageFraming
 
         bound =
             toFloat (imgWidth model)
@@ -358,7 +415,7 @@ image_shift_x_slider model =
         , max = bound
         , step = Just 1.0
         , thumb = EI.defaultThumb
-        , value = model.imageView.shiftX
+        , value = model.imageFraming.shiftX
         }
 
 
@@ -366,7 +423,7 @@ image_shift_y_slider : Model -> E.Element Msg
 image_shift_y_slider model =
     let
         currentView =
-            model.imageView
+            model.imageFraming
 
         bound =
             toFloat (imgHeight model)
@@ -378,7 +435,7 @@ image_shift_y_slider model =
         , max = bound
         , step = Just 1.0
         , thumb = EI.defaultThumb
-        , value = model.imageView.shiftY
+        , value = model.imageFraming.shiftY
         }
 
 
@@ -482,9 +539,9 @@ area_of_contours model =
 area_of_model : Model -> Contour.Area
 area_of_model model =
     full_area_of_model model
-        |> Contour.shrink_by model.imageView.zoom
-        |> Contour.shift_by_horizontal model.imageView.shiftX
-        |> Contour.shift_by_vertical model.imageView.shiftY
+        |> Contour.shrink_by model.imageFraming.zoom
+        |> Contour.shift_by_horizontal model.imageFraming.shiftX
+        |> Contour.shift_by_vertical model.imageFraming.shiftY
 
 
 full_area_of_model : Model -> Contour.Area
@@ -503,10 +560,10 @@ svg_area_dim : Model -> List (Svg.Attribute msg)
 svg_area_dim model =
     let
         w =
-            min svg_window_width_px (imgWidth model * model.imageView.scaling)
+            min svg_window_width_px (imgWidth model * model.developmentSettings.imageScaling)
 
         h =
-            min svg_window_height_px (imgHeight model * model.imageView.scaling)
+            min svg_window_height_px (imgHeight model * model.developmentSettings.imageScaling)
     in
     [ svg_width w, svg_height h ]
 
@@ -566,8 +623,8 @@ svg_image model =
         |> Maybe.withDefault []
 
 
-svg_path_of_visible : ( Visibility Contour, ( Int, Int, Int ) ) -> List (Svg.Svg msg)
-svg_path_of_visible ( v, color ) =
+svg_path_of_visible : Float -> ( Visibility Contour, ( Int, Int, Int ) ) -> List (Svg.Svg msg)
+svg_path_of_visible sw ( v, color ) =
     let
         stroke_visibility =
             if isVisible v then
@@ -577,7 +634,7 @@ svg_path_of_visible ( v, color ) =
                 SvgAttr.strokeOpacity "0.0"
 
         base =
-            [ SvgAttr.stroke (svg255 color), SvgAttr.fillOpacity "0.0", stroke_visibility ]
+            [ SvgAttr.stroke (svg255 color), SvgAttr.fillOpacity "0.0", SvgAttr.strokeWidth (String.fromFloat sw), stroke_visibility ]
 
         contour =
             content v
@@ -600,7 +657,7 @@ svg_contours model =
         contours =
             [ ( model.expected, expected_color ), ( model.actual, actual_color ), ( model.diff, diff_color ) ] ++ extras
     in
-    List.concatMap svg_path_of_visible (contours |> List.map (\( pts, c ) -> ( translation pts, c )))
+    List.concatMap (svg_path_of_visible model.developmentSettings.strokeWidth) (contours |> List.map (\( pts, c ) -> ( translation pts, c )))
 
 
 svg_window : Model -> E.Element Msg
