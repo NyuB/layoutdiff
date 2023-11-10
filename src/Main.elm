@@ -8,7 +8,7 @@ import Element as E
 import Element.Background as EBack
 import Element.Border as EB
 import Element.Input as EI
-import Html exposing (Html, li)
+import Html exposing (Html)
 import Init exposing (ImageSpec, Init)
 import Json.Decode as Json
 import Qol.Cycle as Cycle
@@ -332,12 +332,12 @@ toggle_show_hide_label visible =
 
 image_controls : Model -> E.Element Msg
 image_controls model =
-    E.column [ E.spacing 10 ] [ image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
+    E.column (bordered [ E.spacing 10 ]) [ image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
 
 
 development_settings : Model -> E.Element Msg
 development_settings model =
-    E.column [ E.width E.fill, E.spacing 10 ] [ image_scaling_slider model.developmentSettings, stroke_width_field model, wheel_display model.imageFraming, zoom_step_field model.developmentSettings ]
+    E.column (bordered [ E.width E.fill, E.spacing 10 ]) [ image_scaling_slider model.developmentSettings, stroke_width_field model, wheel_display model.imageFraming, zoom_step_field model.developmentSettings ]
 
 
 image_scaling_slider : DevelopmentSettings -> E.Element Msg
@@ -359,8 +359,8 @@ wheel_display imageFraming =
         [ E.width E.fill
         , E.spacing 5
         ]
-        [ E.el ([ E.width (E.fillPortion 3) ] ++ default_border_attributes) (E.text "Zoom")
-        , E.el ([ E.width (E.fillPortion 1) ] ++ default_border_attributes) (E.text (String.fromFloat imageFraming.zoom |> String.slice 0 10))
+        [ E.el (bordered [ E.width (E.fillPortion 3) ]) (E.text "Zoom")
+        , E.el (bordered [ E.width (E.fillPortion 1) ]) (E.text (String.fromFloat imageFraming.zoom |> String.slice 0 10))
         ]
 
 
@@ -488,18 +488,13 @@ sliderTrack =
         )
 
 
-default_border_attributes : List (E.Attribute msg)
-default_border_attributes =
-    [ EB.width 2, EB.rounded 5 ]
-
-
 toggle_contour_button : Triforce -> Bool -> E.Element Msg
 toggle_contour_button t v =
     let
         label =
             triforce_label t ++ " " ++ toggle_show_hide_label v
     in
-    EI.button ([ EB.color (triforce_color t) ] ++ default_border_attributes) { onPress = Just (ToggleContour t), label = E.text label }
+    EI.button (bordered [ EB.color (triforce_color t) ]) { onPress = Just (ToggleContour t), label = E.text label }
 
 
 toggle_image_button : Bool -> E.Element Msg
@@ -508,12 +503,12 @@ toggle_image_button v =
         label =
             "Image " ++ toggle_show_hide_label v
     in
-    EI.button ([ EB.color (E.rgb255 0 0 0) ] ++ default_border_attributes) { onPress = Just ToggleImage, label = E.text label }
+    EI.button (bordered [ EB.color (E.rgb255 0 0 0) ]) { onPress = Just ToggleImage, label = E.text label }
 
 
 toggle_buttons : Model -> E.Element Msg
 toggle_buttons model =
-    E.column [ E.spacing 10 ]
+    E.column (bordered [ E.spacing 10 ])
         ([ toggle_contour_button Expected (isVisible model.expected)
          , toggle_contour_button Actual (isVisible model.actual)
          , toggle_contour_button Diff (isVisible model.diff)
@@ -536,7 +531,7 @@ toggle_extra_button i ( n, v ) =
         color =
             Cycle.get i extra_colors
     in
-    EI.button ([ EB.color (rgb255 color) ] ++ default_border_attributes) { onPress = Just (ToggleExtra i), label = E.text label }
+    EI.button (bordered [ EB.color (rgb255 color) ]) { onPress = Just (ToggleExtra i), label = E.text label }
 
 
 toggle_extra_buttons model =
@@ -710,4 +705,18 @@ svg_window model =
         svgContent =
             E.html (Svg.svg svgAttributes svgElements)
     in
-    E.el ([ E.padding 10, E.width (E.px svg_window_width_px), E.height (E.px svg_window_height_px) ] ++ default_border_attributes) svgContent
+    E.el (bordered [ E.padding 10, E.width (E.px svg_window_width_px), E.height (E.px svg_window_height_px) ]) svgContent
+
+
+
+-- Style helpers
+
+
+bordered : List (E.Attribute msg) -> List (E.Attribute msg)
+bordered attrs =
+    default_border_attributes ++ attrs
+
+
+default_border_attributes : List (E.Attribute msg)
+default_border_attributes =
+    [ EB.width 2, EB.rounded 5, E.padding 5 ]
