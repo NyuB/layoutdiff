@@ -1,4 +1,4 @@
-module Area exposing (Area, Point, ReferentialOrigin(..), expand_by, expand_for_point, min_area, point, point_x, point_y, shift_by_horizontal, shift_by_vertical, shift_origin, shrink_by, translate_point_to_referential, zero)
+module Area exposing (Area, Point, ReferentialOrigin(..), ZoomedArea, expand_by, expand_for_point, full, horizontal_shift, initZoom, min_area, point, point_x, point_y, shift_by_horizontal, shift_by_vertical, shift_origin, shrink_by, translate_point_to_referential, vertical_shift, zero, zoom, zoomed)
 
 
 type Point
@@ -12,6 +12,50 @@ type alias Area =
     , width : Float
     , height : Float
     }
+
+
+{-| Represents a zomm on a given original area
+-}
+type ZoomedArea
+    = ZoomedArea { full : Area, zoomed : Area }
+
+
+zoom : Float -> ZoomedArea -> ZoomedArea
+zoom by (ZoomedArea z) =
+    let
+        transformation =
+            if by < 0 then
+                expand_by
+
+            else
+                shrink_by
+    in
+    ZoomedArea { full = z.full, zoomed = transformation by z.zoomed }
+
+
+vertical_shift : Float -> ZoomedArea -> ZoomedArea
+vertical_shift by (ZoomedArea z) =
+    ZoomedArea { full = z.full, zoomed = shift_by_vertical by z.zoomed }
+
+
+horizontal_shift : Float -> ZoomedArea -> ZoomedArea
+horizontal_shift by (ZoomedArea z) =
+    ZoomedArea { full = z.full, zoomed = shift_by_horizontal by z.zoomed }
+
+
+zoomed : ZoomedArea -> Area
+zoomed (ZoomedArea z) =
+    z.zoomed
+
+
+full : ZoomedArea -> Area
+full (ZoomedArea z) =
+    z.full
+
+
+initZoom : Area -> ZoomedArea
+initZoom area =
+    ZoomedArea { full = area, zoomed = area }
 
 
 {-|

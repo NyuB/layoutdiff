@@ -18,7 +18,7 @@ suite =
                 , y_down_translation
                 , xy_diagonal_translation
                 ]
-        , describe "Area" <|
+        , describe "Area transformation" <|
             quick_tests
                 [ translate_top_left_to_bot_left
                 , translate_bot_left_to_top_left
@@ -35,6 +35,9 @@ suite =
                 [ view_box
                 , view_box_skewed
                 ]
+        , describe "Zoom" <|
+            quick_tests
+                [ positive_zoom_reduces_area, negative_zoom_expands_area, same_full_after_zoom ]
         ]
 
 
@@ -283,3 +286,54 @@ view_box =
 view_box_skewed : Quick_test
 view_box_skewed =
     ( "SVG viewbox different origin", \_ -> Expect.equal "1 2 10 7.25" (Area.Svg.viewBox { width = 10, height = 7.25, origin = Area.point 1 2 }) )
+
+
+positive_zoom_reduces_area : Quick_test
+positive_zoom_reduces_area =
+    ( "Positive zoom reduces the area"
+    , \_ ->
+        let
+            original =
+                Area.initZoom { origin = Area.point 0 0, width = 10, height = 10 }
+
+            zoom_by =
+                1
+
+            expected =
+                { origin = Area.point 1 1, width = 8, height = 8 }
+        in
+        Expect.equal expected (Area.zoom zoom_by original |> Area.zoomed)
+    )
+
+
+negative_zoom_expands_area : Quick_test
+negative_zoom_expands_area =
+    ( "Negative zoom expands the area"
+    , \_ ->
+        let
+            original =
+                Area.initZoom { origin = Area.point 0 0, width = 10, height = 10 }
+
+            zoom_by =
+                -1
+
+            expected =
+                { origin = Area.point -1 -1, width = 12, height = 12 }
+        in
+        Expect.equal expected (Area.zoom zoom_by original |> Area.zoomed)
+    )
+
+
+same_full_after_zoom : Quick_test
+same_full_after_zoom =
+    ( "Full area can be retrieved unmodified after zoom"
+    , \_ ->
+        let
+            original =
+                Area.initZoom { origin = Area.point 0 0, width = 10, height = 10 }
+
+            zoom_by =
+                3
+        in
+        Expect.equal (Area.full original) (Area.zoom zoom_by original |> Area.full)
+    )
