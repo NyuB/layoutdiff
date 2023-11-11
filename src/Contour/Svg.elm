@@ -1,5 +1,6 @@
-module Contour.Svg exposing (d, viewBox)
+module Contour.Svg exposing (d)
 
+import Area exposing (Point)
 import Contour exposing (..)
 
 
@@ -22,27 +23,21 @@ d points =
             d_M first ++ " " ++ String.join " " (List.map d_L rest) |> closed
 
 
-{-| A suitable value for the viewbox atribute of an svg element corresponding to the given area
--}
-viewBox : Area -> String
-viewBox area =
-    [ point_x area.origin, point_y area.origin, area.width, area.height ] |> List.map String.fromFloat |> String.join " "
-
-
 
 -- internals
 
 
 d_L : Point -> String
 d_L p =
-    "L " ++ String.fromFloat (point_x p) ++ " " ++ String.fromFloat (point_y p)
+    "L " ++ String.fromFloat (Area.point_x p) ++ " " ++ String.fromFloat (Area.point_y p)
 
 
 d_M : Point -> String
 d_M p =
-    "M " ++ String.fromFloat (point_x p) ++ " " ++ String.fromFloat (point_y p)
+    "M " ++ String.fromFloat (Area.point_x p) ++ " " ++ String.fromFloat (Area.point_y p)
 
 
+closed : String -> String
 closed path_str =
     if String.endsWith "z" path_str then
         path_str

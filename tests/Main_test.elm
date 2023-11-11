@@ -1,6 +1,6 @@
 module Main_test exposing (suite)
 
-import Contour exposing (ReferentialOrigin(..), point)
+import Area exposing (ReferentialOrigin(..), point)
 import Expect exposing (Expectation)
 import Html exposing (Html)
 import Html.Attributes

@@ -1,6 +1,6 @@
 module Components exposing (CustomEvent, el_event, html_event, mouse_wheel_listener, referential_selector, svg_event)
 
-import Contour exposing (ReferentialOrigin(..))
+import Area exposing (ReferentialOrigin(..))
 import Element as E
 import Element.Background as EBG
 import Element.Border as EB

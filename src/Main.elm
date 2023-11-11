@@ -1,8 +1,10 @@
 module Main exposing (Flags, Model, Msg(..), Triforce(..), init, main, update, view)
 
+import Area exposing (Area, ReferentialOrigin(..))
+import Area.Svg
 import Browser
 import Components exposing (..)
-import Contour exposing (Contour, ReferentialOrigin(..), point, translate_contour_to_referential)
+import Contour exposing (Contour, translate_contour_to_referential)
 import Contour.Svg
 import Element as E
 import Element.Background as EBack
@@ -139,27 +141,27 @@ init_image i =
     i |> Maybe.andThen (\f -> f.image) |> Maybe.map Visible
 
 
-init_contour : List (List ( Float, Float )) -> List (List Contour.Point)
+init_contour : List (List ( Float, Float )) -> Contour
 init_contour flag_contour =
-    List.map (\points -> List.map (\( x, y ) -> point x y) points) flag_contour
+    List.map (\points -> List.map (\( x, y ) -> Area.point x y) points) flag_contour
 
 
-init_expected : Maybe Init -> Visibility (List (List Contour.Point))
+init_expected : Maybe Init -> Visibility Contour
 init_expected flags =
     flags |> Maybe.map (\f -> Visible (init_contour f.expected)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_actual : Maybe Init -> Visibility (List (List Contour.Point))
+init_actual : Maybe Init -> Visibility Contour
 init_actual flags =
     flags |> Maybe.map (\f -> Visible (init_contour f.actual)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_diff : Maybe Init -> Visibility (List (List Contour.Point))
+init_diff : Maybe Init -> Visibility Contour
 init_diff flags =
     flags |> Maybe.map (\f -> Visible (init_contour f.diff)) |> Maybe.withDefault (Hidden [ [] ])
 
 
-init_extras : Maybe Init -> List ( String, Visibility (List (List Contour.Point)) )
+init_extras : Maybe Init -> List ( String, Visibility Contour )
 init_extras flags =
     flags |> Maybe.map (\f -> List.map (\( n, c ) -> ( n, Hidden (init_contour c) )) f.extras) |> Maybe.withDefault []
 
@@ -547,7 +549,7 @@ toggle_extra_buttons model =
 -- SVG
 
 
-area_of_image : ImageSpec -> Contour.Area
+area_of_image : ImageSpec -> Area
 area_of_image img =
     let
         w =
@@ -556,7 +558,7 @@ area_of_image img =
         h =
             toFloat img.height * img.pixelHeight
     in
-    { origin = point img.refX img.refY, width = w, height = h }
+    { origin = Area.point img.refX img.refY, width = w, height = h }
 
 
 extra_contours : Model -> List (Visibility Contour)
@@ -564,22 +566,22 @@ extra_contours model =
     List.map (\e -> e |> Tuple.second) model.extras
 
 
-area_of_contours : Model -> Contour.Area
+area_of_contours : Model -> Area
 area_of_contours model =
     ([ model.expected, model.actual, model.diff ] ++ extra_contours model)
         |> List.map content
-        |> List.foldl (\c a -> Contour.expand_for_contour a c) Contour.min_area
+        |> List.foldl (\c a -> Contour.expand_for_contour a c) Area.min_area
 
 
-zoomed_area : Model -> Contour.Area
+zoomed_area : Model -> Area
 zoomed_area model =
     full_area model
-        |> Contour.shrink_by model.imageFraming.zoom
-        |> Contour.shift_by_horizontal model.imageFraming.shiftX
-        |> Contour.shift_by_vertical model.imageFraming.shiftY
+        |> Area.shrink_by model.imageFraming.zoom
+        |> Area.shift_by_horizontal model.imageFraming.shiftX
+        |> Area.shift_by_vertical model.imageFraming.shiftY
 
 
-full_area : Model -> Contour.Area
+full_area : Model -> Area
 full_area model =
     model.image
         |> Maybe.map (\i -> area_of_image (content i))
@@ -588,7 +590,7 @@ full_area model =
 
 svg_viewbox : Model -> Svg.Attribute Msg
 svg_viewbox model =
-    SvgAttr.viewBox (Contour.Svg.viewBox (zoomed_area model))
+    SvgAttr.viewBox (Area.Svg.viewBox (zoomed_area model))
 
 
 svg_viewport_pixel_dimensions : Model -> List (Svg.Attribute msg)
