@@ -1,4 +1,4 @@
-module Area exposing (Area, Point, ReferentialOrigin(..), ZoomedArea, expand_by, expand_for_point, full, horizontal_shift, initZoom, min_area, point, point_x, point_y, shift_by_horizontal, shift_by_vertical, shift_origin, shrink_by, translate_point_to_referential, vertical_shift, zero, zoom, zoomed)
+module Area exposing (Area, Point, ReferentialOrigin(..), ZoomedArea, expand_by, expand_for_point, full, horizontal_shift, initZoom, min_area, point, point_x, point_y, shift_origin, shrink_by, translate_point_to_referential, vertical_shift, zero, zoom, zoomed)
 
 
 type Point

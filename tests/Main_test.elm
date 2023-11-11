@@ -1,6 +1,6 @@
 module Main_test exposing (suite)
 
-import Area exposing (ReferentialOrigin(..), point)
+import Area exposing (ReferentialOrigin(..))
 import Expect exposing (Expectation)
 import Html.Attributes
 import Init
@@ -234,11 +234,7 @@ svg_path_zoom =
 
 zoom : Float -> Main.Model -> ( Main.Model, Cmd Msg )
 zoom z m =
-    let
-        iv =
-            m.imageFraming
-    in
-    update (ChangeImageView { iv | zoom = z }) m
+    update (ZoomBy z) m
 
 
 extras_visibility : Main.Model -> List Bool
@@ -288,7 +284,10 @@ visibility_presence l =
 
 init_two_points_in_diff : ( Float, Float ) -> ( Float, Float ) -> Main.Model
 init_two_points_in_diff ( x, y ) ( j, i ) =
-    { init_none | expected = Hidden [ [] ], actual = Hidden [ [] ], diff = Visible [ [ point x y, point j i ] ] }
+    { image = Nothing, expected = [], actual = [], diff = [ [ ( x, y ), ( j, i ) ] ], extras = [] }
+        |> just_flags
+        |> Main.init
+        |> Tuple.first
 
 
 init_none : Main.Model

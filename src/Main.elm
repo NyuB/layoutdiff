@@ -1,6 +1,6 @@
 module Main exposing (DevelopmentSettings, Flags, ImageFraming, Model, Msg(..), Triforce(..), init, main, update, view)
 
-import Area exposing (Area, ReferentialOrigin(..))
+import Area exposing (Area, ReferentialOrigin(..), ZoomedArea)
 import Area.Svg
 import Browser
 import Components
@@ -99,6 +99,7 @@ type alias Model =
     , image : Maybe (Visibility ImageSpec)
     , imageFraming : ImageFraming
     , contoursReferential : ReferentialOrigin
+    , zoomedArea : ZoomedArea
     , developmentSettings : DevelopmentSettings
     }
 
@@ -106,7 +107,6 @@ type alias Model =
 type alias ImageFraming =
     { shiftX : Float
     , shiftY : Float
-    , zoom : Float
     }
 
 
@@ -168,7 +168,7 @@ init_extras flags =
 
 init_image_view : ImageFraming
 init_image_view =
-    { zoom = 0.0, shiftX = 0.0, shiftY = 0.0 }
+    { shiftX = 0.0, shiftY = 0.0 }
 
 
 initDevSettings : DevelopmentSettings
@@ -181,15 +181,34 @@ init flags =
     let
         decoded =
             flags |> Maybe.andThen (Json.decodeValue Init.decode >> Result.toMaybe)
+
+        image =
+            init_image decoded
+
+        expected =
+            init_expected decoded
+
+        actual =
+            init_actual decoded
+
+        diff =
+            init_diff decoded
+
+        extras =
+            init_extras decoded
+
+        zoomedArea =
+            Area.initZoom (full_area (Maybe.map content image) ([ expected, actual, diff ] ++ List.map Tuple.second extras))
     in
-    ( { expected = init_expected decoded
-      , actual = init_actual decoded
-      , diff = init_diff decoded
-      , extras = init_extras decoded
-      , image = init_image decoded
+    ( { expected = expected
+      , actual = actual
+      , diff = diff
+      , extras = extras
+      , image = image
       , imageFraming = init_image_view
       , contoursReferential = TopLeft
       , developmentSettings = initDevSettings
+      , zoomedArea = zoomedArea
       }
     , Cmd.none
     )
@@ -206,6 +225,7 @@ type Msg
     | ChangeImageView ImageFraming
     | ChangeLayoutReferential ReferentialOrigin
     | ChangeDevSettings DevelopmentSettings
+    | ZoomBy Float
 
 
 type Triforce
@@ -242,6 +262,9 @@ update msg model =
 
                 ChangeDevSettings ds ->
                     changedDevSettings ds model
+
+                ZoomBy z ->
+                    zoomBy z model
     in
     ( m, Cmd.none )
 
@@ -270,11 +293,7 @@ toggled_extra model index =
 
 changedImageView : ImageFraming -> Model -> Model
 changedImageView imageView model =
-    if 0.0 <= imageView.zoom then
-        { model | imageFraming = imageView }
-
-    else
-        model
+    { model | imageFraming = imageView }
 
 
 changedDevSettings : DevelopmentSettings -> Model -> Model
@@ -294,6 +313,15 @@ changedDevSettings ds model =
             { stroked | strokeWidthCurrent = ds.strokeWidthCurrent }
     in
     { model | developmentSettings = withCurrent }
+
+
+zoomBy : Float -> Model -> Model
+zoomBy by model =
+    let
+        area =
+            Area.zoom by model.zoomedArea
+    in
+    { model | zoomedArea = area }
 
 
 
@@ -337,12 +365,12 @@ toggle_show_hide_label visible =
 
 image_controls : Model -> E.Element Msg
 image_controls model =
-    E.column (bordered [ E.spacing 10 ]) [ image_zoom_slider model, image_shift_x_slider model, image_shift_y_slider model ]
+    E.column (bordered [ E.spacing 10 ]) [ image_shift_x_slider model, image_shift_y_slider model ]
 
 
 development_settings : Model -> E.Element Msg
 development_settings model =
-    E.column (bordered [ E.width E.fill, E.spacing 10 ]) [ image_scaling_slider model.developmentSettings, stroke_width_field model, wheel_display model.imageFraming, zoom_step_field model.developmentSettings ]
+    E.column (bordered [ E.width E.fill, E.spacing 10 ]) [ image_scaling_slider model.developmentSettings, stroke_width_field model, zoom_step_field model.developmentSettings ]
 
 
 image_scaling_slider : DevelopmentSettings -> E.Element Msg
@@ -358,41 +386,20 @@ image_scaling_slider devSettings =
         }
 
 
-wheel_display : ImageFraming -> E.Element Msg
-wheel_display imageFraming =
-    E.row
-        [ E.width E.fill
-        , E.spacing 5
-        ]
-        [ E.el (bordered [ E.width (E.fillPortion 3) ]) (E.text "Zoom")
-        , E.el (bordered [ E.width (E.fillPortion 1) ]) (E.text (String.fromFloat imageFraming.zoom |> String.slice 0 10))
-        ]
-
-
 mouse_wheel_event_listener : Model -> Components.CustomEvent Msg
 mouse_wheel_event_listener model =
-    Components.mouse_wheel_listener (\f -> ChangeImageView (updateZoom f model))
-
-
-updateZoom : Float -> Model -> ImageFraming
-updateZoom z model =
     let
-        imageFraming =
-            model.imageFraming
+        step =
+            model.developmentSettings.zoomStep
     in
-    if z == 0 then
-        imageFraming
+    Components.mouse_wheel_listener
+        (\f ->
+            if f < 0 then
+                ZoomBy step
 
-    else
-        let
-            step =
-                model.developmentSettings.zoomStep
-        in
-        if z < 0 then
-            { imageFraming | zoom = imageFraming.zoom + step }
-
-        else
-            { imageFraming | zoom = imageFraming.zoom - step }
+            else
+                ZoomBy -step
+        )
 
 
 zoom_step_field : DevelopmentSettings -> E.Element Msg
@@ -421,23 +428,6 @@ stroke_width_field model =
         , text = current.strokeWidthCurrent
         , placeholder = Nothing
         , label = EI.labelBelow [] (E.text "Stroke width")
-        }
-
-
-image_zoom_slider : Model -> E.Element Msg
-image_zoom_slider model =
-    let
-        currentView =
-            model.imageFraming
-    in
-    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
-        { onChange = \f -> ChangeImageView { currentView | zoom = f }
-        , label = EI.labelBelow [] (E.text "Zoom")
-        , min = 0.0
-        , max = toFloat (min (imgHeight model) (imgWidth model)) / 2.0
-        , step = Just 1
-        , thumb = EI.defaultThumb
-        , value = model.imageFraming.zoom
         }
 
 
@@ -563,31 +553,26 @@ area_of_image img =
     { origin = Area.point img.refX img.refY, width = w, height = h }
 
 
-extra_contours : Model -> List (Visibility Contour)
-extra_contours model =
-    List.map (\e -> e |> Tuple.second) model.extras
-
-
-area_of_contours : Model -> Area
-area_of_contours model =
-    ([ model.expected, model.actual, model.diff ] ++ extra_contours model)
+area_of_contours : List (Visibility Contour) -> Area
+area_of_contours contours =
+    contours
         |> List.map content
         |> List.foldl (\c a -> Contour.expand_for_contour a c) Area.min_area
 
 
 zoomed_area : Model -> Area
 zoomed_area model =
-    full_area model
-        |> Area.shrink_by model.imageFraming.zoom
-        |> Area.shift_by_horizontal model.imageFraming.shiftX
-        |> Area.shift_by_vertical model.imageFraming.shiftY
+    model.zoomedArea
+        |> Area.horizontal_shift model.imageFraming.shiftX
+        |> Area.vertical_shift model.imageFraming.shiftY
+        |> Area.zoomed
 
 
-full_area : Model -> Area
-full_area model =
-    model.image
-        |> Maybe.map (\i -> area_of_image (content i))
-        |> Maybe.withDefault (area_of_contours model)
+full_area : Maybe ImageSpec -> List (Visibility Contour) -> Area
+full_area image contours =
+    image
+        |> Maybe.map area_of_image
+        |> Maybe.withDefault (area_of_contours contours)
 
 
 svg_viewbox : Model -> Svg.Attribute Msg
@@ -685,7 +670,7 @@ svg_contours : Model -> List (Svg.Svg Msg)
 svg_contours model =
     let
         area =
-            full_area model
+            Area.full model.zoomedArea
 
         translation =
             Visibility.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = TopLeft })
