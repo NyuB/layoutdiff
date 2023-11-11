@@ -64,6 +64,7 @@ diff_color =
     ( 255, 0, 0 )
 
 
+extra_colors : Cycle.Cycle ( number, number, number )
 extra_colors =
     Cycle.ofList ( 255, 255, 0 )
         [ ( 255, 0, 255 )
@@ -74,10 +75,12 @@ extra_colors =
         ]
 
 
+rgb255 : ( Int, Int, Int ) -> E.Color
 rgb255 ( r, g, b ) =
     E.rgb255 r g b
 
 
+svg255 : ( Int, Int, Int ) -> String
 svg255 ( r, g, b ) =
     "rgb(" ++ (String.join "," <| List.map String.fromInt [ r, g, b ]) ++ ")"
 
@@ -523,6 +526,7 @@ toggle_image_buttons model =
     model.image |> Maybe.map (\img -> [ toggle_image_button (isVisible img) ]) |> Maybe.withDefault []
 
 
+toggle_extra_button : Int -> ( String, Visibility a ) -> E.Element Msg
 toggle_extra_button i ( n, v ) =
     let
         label =
@@ -534,6 +538,7 @@ toggle_extra_button i ( n, v ) =
     EI.button (bordered [ EB.color (rgb255 color) ]) { onPress = Just (ToggleExtra i), label = E.text label }
 
 
+toggle_extra_buttons : Model -> List (E.Element Msg)
 toggle_extra_buttons model =
     List.indexedMap (\i e -> toggle_extra_button i e) model.extras
 
@@ -566,16 +571,16 @@ area_of_contours model =
         |> List.foldl (\c a -> Contour.expand_for_contour a c) Contour.min_area
 
 
-area_of_model : Model -> Contour.Area
-area_of_model model =
-    full_area_of_model model
+zoomed_area : Model -> Contour.Area
+zoomed_area model =
+    full_area model
         |> Contour.shrink_by model.imageFraming.zoom
         |> Contour.shift_by_horizontal model.imageFraming.shiftX
         |> Contour.shift_by_vertical model.imageFraming.shiftY
 
 
-full_area_of_model : Model -> Contour.Area
-full_area_of_model model =
+full_area : Model -> Contour.Area
+full_area model =
     model.image
         |> Maybe.map (\i -> area_of_image (content i))
         |> Maybe.withDefault (area_of_contours model)
@@ -583,11 +588,11 @@ full_area_of_model model =
 
 svg_viewbox : Model -> Svg.Attribute Msg
 svg_viewbox model =
-    SvgAttr.viewBox (Contour.Svg.viewBox (area_of_model model))
+    SvgAttr.viewBox (Contour.Svg.viewBox (zoomed_area model))
 
 
-svg_area_dim : Model -> List (Svg.Attribute msg)
-svg_area_dim model =
+svg_viewport_pixel_dimensions : Model -> List (Svg.Attribute msg)
+svg_viewport_pixel_dimensions model =
     let
         w =
             min svg_window_width_px (imgWidth model * model.developmentSettings.imageScaling)
@@ -598,9 +603,9 @@ svg_area_dim model =
     [ svg_width w, svg_height h ]
 
 
-svg_area : Model -> List (Svg.Attribute Msg)
-svg_area model =
-    svg_area_dim model ++ [ svg_viewbox model ]
+svg_viewport : Model -> List (Svg.Attribute Msg)
+svg_viewport model =
+    svg_viewport_pixel_dimensions model ++ [ svg_viewbox model ]
 
 
 svg_image_link : ImageSpec -> Svg.Attribute msg
@@ -676,7 +681,7 @@ svg_contours : Model -> List (Svg.Svg Msg)
 svg_contours model =
     let
         area =
-            full_area_of_model model
+            full_area model
 
         translation =
             Visibility.map (translate_contour_to_referential area { contourRef = model.contoursReferential, targetRef = TopLeft })
@@ -700,7 +705,7 @@ svg_window model =
             svg_image model ++ svg_contours model
 
         svgAttributes =
-            svg_area model ++ [ svgListenWheel ]
+            svg_viewport model ++ [ svgListenWheel ]
 
         svgContent =
             E.html (Svg.svg svgAttributes svgElements)

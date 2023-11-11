@@ -22,6 +22,8 @@ d points =
             d_M first ++ " " ++ String.join " " (List.map d_L rest) |> closed
 
 
+{-| A suitable value for the viewbox atribute of an svg element corresponding to the given area
+-}
 viewBox : Area -> String
 viewBox area =
     [ point_x area.origin, point_y area.origin, area.width, area.height ] |> List.map String.fromFloat |> String.join " "

@@ -25,6 +25,10 @@ referential_selector attrs current onClick =
         ]
 
 
+type CustomEvent msg
+    = CustomEvent (LabeledHandler msg)
+
+
 mouse_wheel_listener : (Float -> msg) -> CustomEvent msg
 mouse_wheel_listener f =
     let
@@ -57,10 +61,6 @@ el_event custom =
 
 type alias LabeledHandler msg =
     ( String, Decode.Decoder { message : msg, stopPropagation : Bool, preventDefault : Bool } )
-
-
-type CustomEvent msg
-    = CustomEvent (LabeledHandler msg)
 
 
 referential_selector_left_column : ReferentialOrigin -> (ReferentialOrigin -> msg) -> E.Element msg
