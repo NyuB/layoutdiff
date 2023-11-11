@@ -1,10 +1,10 @@
 module Contour_test exposing (suite)
 
-import Area exposing (Point, ReferentialOrigin(..))
-import Contour exposing (..)
+import Area exposing (Point)
+import Contour exposing (contour_area)
 import Contour.Svg
 import Expect exposing (Expectation)
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 
 
 suite : Test

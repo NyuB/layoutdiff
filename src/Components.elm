@@ -1,12 +1,10 @@
-module Components exposing (CustomEvent, el_event, html_event, mouse_wheel_listener, referential_selector, svg_event)
+module Components exposing (CustomEvent, mouse_wheel_listener, referential_selector, svg_event)
 
 import Area exposing (ReferentialOrigin(..))
 import Element as E
 import Element.Background as EBG
 import Element.Border as EB
 import Element.Events as EE
-import Html
-import Html.Events
 import Json.Decode as Decode
 import Svg
 import Svg.Events
@@ -43,16 +41,6 @@ mouse_wheel_listener f =
 svg_event : CustomEvent msg -> Svg.Attribute msg
 svg_event (CustomEvent ( label, decoder )) =
     Svg.Events.custom label decoder
-
-
-html_event : CustomEvent msg -> Html.Attribute msg
-html_event (CustomEvent ( label, decoder )) =
-    Html.Events.custom label decoder
-
-
-el_event : CustomEvent msg -> E.Attribute msg
-el_event custom =
-    E.htmlAttribute (html_event custom)
 
 
 

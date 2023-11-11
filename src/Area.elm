@@ -152,10 +152,10 @@ shrink_by : Float -> Area -> Area
 shrink_by delta area =
     let
         dx =
-            0 - abs delta
+            -(abs delta)
 
         dy =
-            0 - abs delta
+            -(abs delta)
 
         ( ax, ay ) =
             ( point_x area.origin - dx, point_y area.origin - dy )
@@ -176,7 +176,7 @@ shift_by_horizontal dx area =
         x =
             point_x area.origin + dx
     in
-    { origin = point (x + dx) (point_y area.origin), width = area.width, height = area.height }
+    { origin = point x (point_y area.origin), width = area.width, height = area.height }
 
 
 shift_by_vertical : Float -> Area -> Area

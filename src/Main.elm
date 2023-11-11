@@ -1,9 +1,9 @@
-module Main exposing (Flags, Model, Msg(..), Triforce(..), init, main, update, view)
+module Main exposing (DevelopmentSettings, Flags, ImageFraming, Model, Msg(..), Triforce(..), init, main, update, view)
 
 import Area exposing (Area, ReferentialOrigin(..))
 import Area.Svg
 import Browser
-import Components exposing (..)
+import Components
 import Contour exposing (Contour, translate_contour_to_referential)
 import Contour.Svg
 import Element as E
@@ -13,7 +13,7 @@ import Element.Input as EI
 import Html exposing (Html)
 import Init exposing (ImageSpec, Init)
 import Json.Decode as Json
-import Qol.Cycle as Cycle
+import Qol.Cycle as Cycle exposing (Cycle)
 import String exposing (fromFloat)
 import Svg
 import Svg.Attributes as SvgAttr
@@ -32,7 +32,7 @@ view model =
             [ svg_window model
             , toggle_buttons model
             , image_controls model
-            , referential_selector [] model.contoursReferential ChangeLayoutReferential
+            , Components.referential_selector [] model.contoursReferential ChangeLayoutReferential
             , development_settings model
             ]
 
@@ -66,7 +66,7 @@ diff_color =
     ( 255, 0, 0 )
 
 
-extra_colors : Cycle.Cycle ( number, number, number )
+extra_colors : Cycle ( number, number, number )
 extra_colors =
     Cycle.ofList ( 255, 255, 0 )
         [ ( 255, 0, 255 )
@@ -379,18 +379,20 @@ updateZoom z model =
     let
         imageFraming =
             model.imageFraming
-
-        step =
-            model.developmentSettings.zoomStep
     in
     if z == 0 then
         imageFraming
 
-    else if z < 0 then
-        { imageFraming | zoom = imageFraming.zoom + step }
-
     else
-        { imageFraming | zoom = imageFraming.zoom - step }
+        let
+            step =
+                model.developmentSettings.zoomStep
+        in
+        if z < 0 then
+            { imageFraming | zoom = imageFraming.zoom + step }
+
+        else
+            { imageFraming | zoom = imageFraming.zoom - step }
 
 
 zoom_step_field : DevelopmentSettings -> E.Element Msg
@@ -451,7 +453,7 @@ image_shift_x_slider model =
     EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
         { onChange = \f -> ChangeImageView { currentView | shiftX = f }
         , label = EI.labelBelow [] (E.text "< X >")
-        , min = 0 - bound
+        , min = -bound
         , max = bound
         , step = Just 1.0
         , thumb = EI.defaultThumb
@@ -471,7 +473,7 @@ image_shift_y_slider model =
     EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
         { onChange = \f -> ChangeImageView { currentView | shiftY = f }
         , label = EI.labelBelow [] (E.text "v Y ^")
-        , min = 0 - bound
+        , min = -bound
         , max = bound
         , step = Just 1.0
         , thumb = EI.defaultThumb

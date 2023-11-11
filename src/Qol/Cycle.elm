@@ -39,9 +39,6 @@ get index cycle =
     let
         h =
             head cycle
-
-        t =
-            tail cycle
     in
     if index <= 0 then
         h
@@ -53,6 +50,10 @@ get index cycle =
         in
         if index < l then
             -- because of the invariants, the withDefault call is just here to satisfy the compiler and will never actually be applied
+            let
+                t =
+                    tail cycle
+            in
             Array.get (index - 1) t |> Maybe.withDefault h
 
         else

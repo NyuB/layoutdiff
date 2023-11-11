@@ -1,7 +1,6 @@
 module Contour.Svg exposing (d)
 
 import Area exposing (Point)
-import Contour exposing (..)
 
 
 

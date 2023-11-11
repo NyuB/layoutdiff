@@ -2,9 +2,9 @@ module Init_test exposing (suite)
 
 import Expect
 import Fuzz
-import Init exposing (..)
+import Init exposing (ImageSpec, Init, decode, encode)
 import Json.Decode
-import Test exposing (..)
+import Test exposing (Test, describe, fuzz, test)
 
 
 suite : Test

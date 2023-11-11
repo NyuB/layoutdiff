@@ -1,8 +1,8 @@
 module Cycle_test exposing (suite)
 
 import Expect exposing (Expectation)
-import Qol.Cycle exposing (..)
-import Test exposing (..)
+import Qol.Cycle exposing (associateList, get, length, ofList)
+import Test exposing (Test, describe, test)
 
 
 suite : Test
@@ -10,7 +10,24 @@ suite =
     describe "Cyclic container test"
         [ describe "get" <| quick_tests [ zero_is_head_element, get_mid_element, get_last_element, get_first_element_cyclic, get_mid_element_cyclic ]
         , describe "associate" <| quick_tests [ associate_empty, associate_no_cycle, associate_cycle ]
+        , describe "length" <| quick_tests [ length_one, length_many ]
         ]
+
+
+length_one : Quick_test
+length_one =
+    ( "Single element cycle length is 1"
+    , \_ ->
+        Expect.equal 1 (ofList "A" [] |> length)
+    )
+
+
+length_many : Quick_test
+length_many =
+    ( "3 elements cycle length is 3"
+    , \_ ->
+        Expect.equal 3 (ofList "A" [ "B", "C" ] |> length)
+    )
 
 
 zero_is_head_element : Quick_test

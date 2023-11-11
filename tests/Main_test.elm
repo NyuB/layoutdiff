@@ -2,19 +2,14 @@ module Main_test exposing (suite)
 
 import Area exposing (ReferentialOrigin(..), point)
 import Expect exposing (Expectation)
-import Html exposing (Html)
 import Html.Attributes
 import Init
 import Json.Encode
-import Main exposing (Flags, Msg(..), Triforce(..), update, view)
-import Test exposing (..)
+import Main exposing (Msg(..), Triforce(..), update, view)
+import Test exposing (Test, describe, test)
 import Test.Html.Query as HQ
-import Test.Html.Selector exposing (..)
-import Visibility exposing (..)
-
-
-type alias Json =
-    Json.Encode.Value
+import Test.Html.Selector exposing (Selector, attribute, tag)
+import Visibility exposing (Visibility(..), content, isVisible)
 
 
 

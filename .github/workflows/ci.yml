@@ -20,9 +20,13 @@ jobs:
         npm install -g -y elm
         npm install -g -y elm-format
         npm install -g -y elm-test
+        npm install -g -y elm-review
 
     - name: Enforce formatting
       run: make fmt-check
+
+    - name: Enforce coding rules
+      run: make review-check
 
     - name: Test
       run: make test

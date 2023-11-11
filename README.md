@@ -59,6 +59,10 @@ make
 ```bash
 make test
 ```
+### Coding rules enforcement
+```bash
+make review-check
+```
 ### Format
 ```bash
 make fmt
@@ -76,11 +80,15 @@ make build
 npm install -g elm
 ```
 
-#### To run tests and formatting
+#### To run tests and coding standards enforcements
 
 + elm-format 
 ```bash
 npm install -g elm-format
+```
++ elm-review
+```bash
+npm install -g elm-review
 ```
 + elm-test 
 ```bash

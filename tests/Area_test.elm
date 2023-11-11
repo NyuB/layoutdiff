@@ -2,9 +2,9 @@ module Area_test exposing (suite)
 
 import Area exposing (Point, ReferentialOrigin(..))
 import Area.Svg
-import Contour exposing (..)
+import Contour exposing (translate_contour_to_referential)
 import Expect exposing (Expectation)
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 
 
 suite : Test
@@ -37,7 +37,14 @@ suite =
                 ]
         , describe "Zoom" <|
             quick_tests
-                [ positive_zoom_reduces_area, negative_zoom_expands_area, same_full_after_zoom ]
+                [ positive_zoom_reduces_area
+                , negative_zoom_expands_area
+                , same_full_after_zoom
+                , horizontal_shift_left
+                , horizontal_shift_right
+                , vertical_shift_up
+                , vertical_shift_down
+                ]
         ]
 
 
@@ -336,4 +343,64 @@ same_full_after_zoom =
                 3
         in
         Expect.equal (Area.full original) (Area.zoom zoom_by original |> Area.full)
+    )
+
+
+horizontal_shift_left : Quick_test
+horizontal_shift_left =
+    ( "Horizontal shift left"
+    , \_ ->
+        let
+            original =
+                Area.initZoom { origin = Area.point 0 0, width = 10, height = 10 }
+
+            shift =
+                -1
+        in
+        Expect.equal { origin = Area.point -1 0, width = 10, height = 10 } (Area.horizontal_shift shift original |> Area.zoomed)
+    )
+
+
+horizontal_shift_right : Quick_test
+horizontal_shift_right =
+    ( "Horizontal shift right"
+    , \_ ->
+        let
+            original =
+                Area.initZoom { origin = Area.point 0 0, width = 10, height = 10 }
+
+            shift =
+                1
+        in
+        Expect.equal { origin = Area.point 1 0, width = 10, height = 10 } (Area.horizontal_shift shift original |> Area.zoomed)
+    )
+
+
+vertical_shift_up : Quick_test
+vertical_shift_up =
+    ( "Vertical shift up"
+    , \_ ->
+        let
+            original =
+                Area.initZoom { origin = Area.point 0 0, width = 10, height = 10 }
+
+            shift =
+                1
+        in
+        Expect.equal { origin = Area.point 0 1, width = 10, height = 10 } (Area.vertical_shift shift original |> Area.zoomed)
+    )
+
+
+vertical_shift_down : Quick_test
+vertical_shift_down =
+    ( "Vertical shift down"
+    , \_ ->
+        let
+            original =
+                Area.initZoom { origin = Area.point 0 0, width = 10, height = 10 }
+
+            shift =
+                -1
+        in
+        Expect.equal { origin = Area.point 0 -1, width = 10, height = 10 } (Area.vertical_shift shift original |> Area.zoomed)
     )
