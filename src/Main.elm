@@ -101,6 +101,7 @@ type alias Model =
     , contoursReferential : ReferentialOrigin
     , zoomedArea : ZoomedArea
     , developmentSettings : DevelopmentSettings
+    , mouseDragTracker : Components.MouseDragTracker
     }
 
 
@@ -209,6 +210,7 @@ init flags =
       , contoursReferential = TopLeft
       , developmentSettings = initDevSettings
       , zoomedArea = zoomedArea
+      , mouseDragTracker = Components.initMouseDragTracker
       }
     , Cmd.none
     )
@@ -226,6 +228,7 @@ type Msg
     | ChangeLayoutReferential ReferentialOrigin
     | ChangeDevSettings DevelopmentSettings
     | ZoomBy Float
+    | Drag ( Components.MouseDragTracker, Maybe Components.DragMove )
 
 
 type Triforce
@@ -265,6 +268,9 @@ update msg model =
 
                 ZoomBy z ->
                     zoomBy z model
+
+                Drag d ->
+                    drag d model
     in
     ( m, Cmd.none )
 
@@ -322,6 +328,23 @@ zoomBy by model =
             Area.zoom by model.zoomedArea
     in
     { model | zoomedArea = area }
+
+
+drag : ( Components.MouseDragTracker, Maybe Components.DragMove ) -> Model -> Model
+drag ( tracker, move ) model =
+    case move of
+        Nothing ->
+            { model | mouseDragTracker = tracker }
+
+        Just ( x, y ) ->
+            let
+                img =
+                    model.imageFraming
+
+                dragged =
+                    { img | shiftX = img.shiftX - x, shiftY = img.shiftY - y }
+            in
+            { model | mouseDragTracker = tracker, imageFraming = dragged }
 
 
 
@@ -688,13 +711,16 @@ svg_window : Model -> E.Element Msg
 svg_window model =
     let
         svgListenWheel =
-            mouse_wheel_event_listener model |> Components.svg_event
+            mouse_wheel_event_listener model
+
+        svgListenDrag =
+            Components.mouse_drag_listener model.mouseDragTracker (\t m -> Drag ( t, m ))
 
         svgElements =
             svg_image model ++ svg_contours model
 
         svgAttributes =
-            svg_viewport model ++ [ svgListenWheel ]
+            svg_viewport model ++ (svgListenWheel :: svgListenDrag |> List.map Components.svg_event)
 
         svgContent =
             E.html (Svg.svg svgAttributes svgElements)

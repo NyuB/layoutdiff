@@ -1,4 +1,4 @@
-module Components exposing (CustomEvent, mouse_wheel_listener, referential_selector, svg_event)
+module Components exposing (CustomEvent, DragMove, MouseDragEvent(..), MouseDragTracker, initMouseDragTracker, mouse_drag_listener, mouse_wheel_listener, referential_selector, svg_event, updateDrag)
 
 import Area exposing (ReferentialOrigin(..))
 import Element as E
@@ -28,14 +28,78 @@ type CustomEvent msg
 
 
 mouse_wheel_listener : (Float -> msg) -> CustomEvent msg
-mouse_wheel_listener f =
+mouse_wheel_listener handler =
     let
         decoder =
             Decode.field "deltaY" Decode.float
-                |> Decode.map f
+                |> Decode.map handler
                 |> Decode.map (\z -> { message = z, preventDefault = True, stopPropagation = True })
     in
     CustomEvent ( "wheel", decoder )
+
+
+mouse_drag_listener : MouseDragTracker -> (MouseDragTracker -> Maybe DragMove -> msg) -> List (CustomEvent msg)
+mouse_drag_listener tracker handler =
+    let
+        tupled_handler ( x, y ) =
+            handler x y
+    in
+    [ mouseDragDownListener, mouseDragMoveListener, mouseDragUpListener, mouseDragLeaveListener ]
+        |> List.map (\listener -> listener tracker tupled_handler)
+
+
+{-| A drag movement represented by (deltaX, deltaY) vector
+-}
+type alias DragMove =
+    ( Float, Float )
+
+
+{-| Mouse drag status
+-}
+type MouseDragTracker
+    = Idle
+    | Pressed ( Float, Float )
+
+
+initMouseDragTracker : MouseDragTracker
+initMouseDragTracker =
+    Idle
+
+
+{-| Simplified mouse event wrapper to implement drag behavior
+
+Clicked -> Mouse button down
+
+Released -> Mouse button up
+
+Moved -> Mouse moved (up or down)
+
+-}
+type MouseDragEvent
+    = Clicked ( Float, Float )
+    | Released ( Float, Float )
+    | Moved ( Float, Float )
+
+
+{-| Update the current dragging status, possibly yielding a dragging move
+-}
+updateDrag : MouseDragEvent -> MouseDragTracker -> ( MouseDragTracker, Maybe DragMove )
+updateDrag event tracker =
+    case ( tracker, event ) of
+        ( Idle, Clicked position ) ->
+            ( Pressed position, Nothing )
+
+        ( Idle, _ ) ->
+            ( Idle, Nothing )
+
+        ( Pressed before, Moved after ) ->
+            ( Pressed after, moveIfDifference before after )
+
+        ( Pressed before, Released after ) ->
+            ( Idle, moveIfDifference before after )
+
+        ( Pressed _, Clicked after ) ->
+            ( Pressed after, Nothing )
 
 
 svg_event : CustomEvent msg -> Svg.Attribute msg
@@ -49,6 +113,51 @@ svg_event (CustomEvent ( label, decoder )) =
 
 type alias LabeledHandler msg =
     ( String, Decode.Decoder { message : msg, stopPropagation : Bool, preventDefault : Bool } )
+
+
+mouseXYDecoder : (( Float, Float ) -> a) -> Decode.Decoder a
+mouseXYDecoder f =
+    Decode.map2 (\x y -> f ( x, y )) (Decode.field "x" Decode.float) (Decode.field "y" Decode.float)
+
+
+mouseDragListener : MouseDragTracker -> (( MouseDragTracker, Maybe DragMove ) -> msg) -> String -> (( Float, Float ) -> MouseDragEvent) -> CustomEvent msg
+mouseDragListener tracker f eventType handler =
+    let
+        decoder =
+            mouseXYDecoder handler
+                |> Decode.map (\e -> updateDrag e tracker)
+                |> Decode.map (\msg -> { message = f msg, stopPropagation = True, preventDefault = True })
+    in
+    CustomEvent ( eventType, decoder )
+
+
+mouseDragDownListener : MouseDragTracker -> (( MouseDragTracker, Maybe DragMove ) -> msg) -> CustomEvent msg
+mouseDragDownListener tracker f =
+    mouseDragListener tracker f "mousedown" Clicked
+
+
+mouseDragUpListener : MouseDragTracker -> (( MouseDragTracker, Maybe DragMove ) -> msg) -> CustomEvent msg
+mouseDragUpListener tracker f =
+    mouseDragListener tracker f "mouseup" Released
+
+
+mouseDragLeaveListener : MouseDragTracker -> (( MouseDragTracker, Maybe DragMove ) -> msg) -> CustomEvent msg
+mouseDragLeaveListener tracker f =
+    mouseDragListener tracker f "mouseleave" Released
+
+
+mouseDragMoveListener : MouseDragTracker -> (( MouseDragTracker, Maybe DragMove ) -> msg) -> CustomEvent msg
+mouseDragMoveListener tracker f =
+    mouseDragListener tracker f "mousemove" Moved
+
+
+moveIfDifference : ( Float, Float ) -> ( Float, Float ) -> Maybe ( Float, Float )
+moveIfDifference ( x, y ) ( a, b ) =
+    if a /= x || b /= y then
+        Just ( a - x, b - y )
+
+    else
+        Nothing
 
 
 referential_selector_left_column : ReferentialOrigin -> (ReferentialOrigin -> msg) -> E.Element msg
