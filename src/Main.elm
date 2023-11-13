@@ -31,7 +31,6 @@ view model =
         E.row [ E.spacing 20 ]
             [ svg_window model
             , toggle_buttons model
-            , image_controls model
             , Components.referential_selector [] model.contoursReferential ChangeLayoutReferential
             , development_settings model
             ]
@@ -116,6 +115,8 @@ type alias DevelopmentSettings =
     , strokeWidth : Float
     , strokeWidthCurrent : String
     , zoomStep : Float
+    , dragStep : Float
+    , dragStepCurrent : String
     }
 
 
@@ -172,9 +173,9 @@ init_image_view =
     { shiftX = 0.0, shiftY = 0.0 }
 
 
-initDevSettings : DevelopmentSettings
-initDevSettings =
-    { imageScaling = 1, strokeWidth = 0.5, strokeWidthCurrent = "0.5", zoomStep = 0.5 }
+init_dev_settings : DevelopmentSettings
+init_dev_settings =
+    { imageScaling = 1, strokeWidth = 0.1, strokeWidthCurrent = "0.1", zoomStep = 2, dragStep = 0.25, dragStepCurrent = "0.25" }
 
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
@@ -208,7 +209,7 @@ init flags =
       , image = image
       , imageFraming = init_image_view
       , contoursReferential = TopLeft
-      , developmentSettings = initDevSettings
+      , developmentSettings = init_dev_settings
       , zoomedArea = zoomedArea
       , mouseDragTracker = Components.initMouseDragTracker
       }
@@ -315,8 +316,11 @@ changedDevSettings ds model =
         stroked =
             String.toFloat ds.strokeWidthCurrent |> Maybe.map (\f -> { scaled | strokeWidth = f }) |> Maybe.withDefault scaled
 
+        dragged =
+            String.toFloat ds.dragStepCurrent |> Maybe.map (\f -> { stroked | dragStep = f }) |> Maybe.withDefault stroked
+
         withCurrent =
-            { stroked | strokeWidthCurrent = ds.strokeWidthCurrent }
+            { dragged | strokeWidthCurrent = ds.strokeWidthCurrent, dragStepCurrent = ds.dragStepCurrent }
     in
     { model | developmentSettings = withCurrent }
 
@@ -341,8 +345,11 @@ drag ( tracker, move ) model =
                 img =
                     model.imageFraming
 
+                step =
+                    model.developmentSettings.dragStep
+
                 dragged =
-                    { img | shiftX = img.shiftX - x, shiftY = img.shiftY - y }
+                    { img | shiftX = img.shiftX - x * step, shiftY = img.shiftY - y * step }
             in
             { model | mouseDragTracker = tracker, imageFraming = dragged }
 
@@ -388,19 +395,25 @@ toggle_show_hide_label visible =
 
 image_controls : Model -> E.Element Msg
 image_controls model =
-    E.column (bordered [ E.spacing 10 ]) [ image_shift_x_slider model, image_shift_y_slider model ]
+    E.column (bordered [ E.spacing 10, E.width E.fill ]) [ image_shift_x_slider model, image_shift_y_slider model ]
 
 
 development_settings : Model -> E.Element Msg
 development_settings model =
-    E.column (bordered [ E.width E.fill, E.spacing 10 ]) [ image_scaling_slider model.developmentSettings, stroke_width_field model, zoom_step_field model.developmentSettings ]
+    E.column (bordered [ E.width E.fill, E.spacing 10, E.above (E.el [ E.padding 5 ] (E.text "Development settings")) ])
+        [ image_scaling_slider model.developmentSettings
+        , stroke_width_field model
+        , drag_step_width_field model
+        , zoom_step_field model.developmentSettings
+        , image_controls model
+        ]
 
 
 image_scaling_slider : DevelopmentSettings -> E.Element Msg
 image_scaling_slider devSettings =
-    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
+    EI.slider [ E.height (E.px 10), E.centerY, sliderTrack ]
         { onChange = \f -> ChangeDevSettings { devSettings | imageScaling = floor f }
-        , label = EI.labelBelow [] (E.text "Image scaling")
+        , label = EI.labelRight [ E.alignRight, E.centerY ] (E.text "Image scaling")
         , min = 1.0
         , max = 10.0
         , step = Just 1
@@ -428,7 +441,7 @@ mouse_wheel_event_listener model =
 zoom_step_field : DevelopmentSettings -> E.Element Msg
 zoom_step_field devSettings =
     EI.text []
-        { label = EI.labelBelow [] (E.text "Zoom step")
+        { label = EI.labelRight [ E.alignRight ] (E.text "Zoom step")
         , placeholder = Nothing
         , text = String.fromFloat devSettings.zoomStep
         , onChange =
@@ -445,12 +458,27 @@ stroke_width_field model =
         current =
             model.developmentSettings
     in
-    EI.text [ E.width E.fill, E.height E.fill ]
+    EI.text []
         { onChange =
             \t -> ChangeDevSettings { current | strokeWidthCurrent = t }
         , text = current.strokeWidthCurrent
         , placeholder = Nothing
-        , label = EI.labelBelow [] (E.text "Stroke width")
+        , label = EI.labelRight [ E.alignRight ] (E.text "Stroke width")
+        }
+
+
+drag_step_width_field : Model -> E.Element Msg
+drag_step_width_field model =
+    let
+        current =
+            model.developmentSettings
+    in
+    EI.text []
+        { onChange =
+            \t -> ChangeDevSettings { current | dragStepCurrent = t }
+        , text = current.dragStepCurrent
+        , placeholder = Nothing
+        , label = EI.labelRight [ E.alignRight ] (E.text "Drag step")
         }
 
 
@@ -463,9 +491,9 @@ image_shift_x_slider model =
         bound =
             toFloat (imgWidth model)
     in
-    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
+    EI.slider [ E.height (E.px 10), E.centerY, sliderTrack ]
         { onChange = \f -> ChangeImageView { currentView | shiftX = f }
-        , label = EI.labelBelow [] (E.text "< X >")
+        , label = EI.labelRight [ E.alignRight, E.centerY ] (E.text "< X >")
         , min = -bound
         , max = bound
         , step = Just 1.0
@@ -483,9 +511,9 @@ image_shift_y_slider model =
         bound =
             toFloat (imgHeight model)
     in
-    EI.slider [ E.height (E.px 10), E.width (E.px 100), sliderTrack ]
+    EI.slider [ E.height (E.px 10), E.centerY, sliderTrack ]
         { onChange = \f -> ChangeImageView { currentView | shiftY = f }
-        , label = EI.labelBelow [] (E.text "v Y ^")
+        , label = EI.labelRight [ E.alignRight, E.centerY ] (E.text "^ Y v")
         , min = -bound
         , max = bound
         , step = Just 1.0
@@ -512,7 +540,7 @@ toggle_contour_button : Triforce -> Bool -> E.Element Msg
 toggle_contour_button t v =
     let
         label =
-            triforce_label t ++ " " ++ toggle_show_hide_label v
+            spaced [ triforce_label t, toggle_show_hide_label v ]
     in
     EI.button (bordered [ EB.color (triforce_color t) ]) { onPress = Just (ToggleContour t), label = E.text label }
 
@@ -547,7 +575,7 @@ toggle_extra_button : Int -> ( String, Visibility a ) -> E.Element Msg
 toggle_extra_button i ( n, v ) =
     let
         label =
-            n ++ toggle_show_hide_label (isVisible v)
+            spaced [ n, toggle_show_hide_label (isVisible v) ]
 
         color =
             Cycle.get i extra_colors
@@ -740,3 +768,8 @@ bordered attrs =
 default_border_attributes : List (E.Attribute msg)
 default_border_attributes =
     [ EB.width 2, EB.rounded 5, E.padding 5 ]
+
+
+spaced : List String -> String
+spaced strings =
+    String.join " " strings
