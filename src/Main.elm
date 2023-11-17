@@ -699,20 +699,20 @@ svg_image model =
 
 
 svg_path_of_visible : Float -> ( Visibility Contour, ( Int, Int, Int ) ) -> List (Svg.Svg msg)
-svg_path_of_visible sw ( v, color ) =
+svg_path_of_visible stroke_width ( contour_visibility, color ) =
     let
         stroke_visibility =
-            if isVisible v then
+            if isVisible contour_visibility then
                 SvgAttr.strokeOpacity "1.0"
 
             else
                 SvgAttr.strokeOpacity "0.0"
 
         base =
-            [ SvgAttr.stroke (svg255 color), SvgAttr.fillOpacity "0.0", SvgAttr.strokeWidth (String.fromFloat sw), stroke_visibility ]
+            [ SvgAttr.stroke (svg255 color), SvgAttr.fillOpacity "0.0", SvgAttr.strokeWidth (String.fromFloat stroke_width), stroke_visibility ]
 
         contour =
-            content v
+            content contour_visibility
     in
     List.map (\c -> Svg.path (SvgAttr.d (Contour.Svg.d c) :: base) []) contour
 

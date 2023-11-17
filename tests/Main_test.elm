@@ -46,6 +46,7 @@ html_tests =
     , svg_path_with_extras
     , svg_path_referential_change
     , svg_path_zoom
+    , svg_path_hidden
     ]
 
 
@@ -225,6 +226,29 @@ svg_path_zoom =
             , HQ.find visible_svg_path >> svg_path_is "M 0 0 L 10 10z"
             ]
             updated_view
+    )
+
+
+svg_path_hidden : Quick_test
+svg_path_hidden =
+    ( "Hidden contours' path have opacity zero"
+    , \_ ->
+        let
+            hide_diff_contour =
+                init_two_points_in_diff ( 0, 0 ) ( 10, 10 )
+                    |> Main.update (ToggleContour Diff)
+                    |> Tuple.first
+
+            v =
+                view hide_diff_contour |> HQ.fromHtml
+
+            -- 1 in expected, 1 in actual, 1 in diff, 2 in one extra
+        in
+        Expect.all
+            [ HQ.findAll [ tag "path" ] >> HQ.count (Expect.equal 1)
+            , HQ.find [ tag "path" ] >> HQ.has [ html_attribute "stroke-opacity" "0.0" ]
+            ]
+            v
     )
 
 
