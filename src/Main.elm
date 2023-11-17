@@ -115,6 +115,7 @@ type alias DevelopmentSettings =
     , strokeWidth : Float
     , strokeWidthCurrent : String
     , zoomStep : Float
+    , zoomStepCurrent : String
     , dragStep : Float
     , dragStepCurrent : String
     }
@@ -175,7 +176,7 @@ init_image_view =
 
 init_dev_settings : DevelopmentSettings
 init_dev_settings =
-    { imageScaling = 1, strokeWidth = 0.1, strokeWidthCurrent = "0.1", zoomStep = 2, dragStep = 0.25, dragStepCurrent = "0.25" }
+    { imageScaling = 1, strokeWidth = 0.1, strokeWidthCurrent = "0.1", zoomStep = 2, zoomStepCurrent = "2.0", dragStep = 0.25, dragStepCurrent = "0.25" }
 
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
@@ -315,6 +316,12 @@ changedImageView imageView model =
     { model | imageFraming = imageView }
 
 
+
+{- **TODO** Development settings are becoming too complex with the "one single update message" approach
+   Split update messages to avoid handling too much complexity in this function
+-}
+
+
 changedDevSettings : DevelopmentSettings -> Model -> Model
 changedDevSettings ds model =
     let
@@ -323,18 +330,16 @@ changedDevSettings ds model =
                 ds
 
             else
-                model.developmentSettings
+                { ds | imageScaling = model.developmentSettings.imageScaling }
 
-        stroked =
-            String.toFloat ds.strokeWidthCurrent |> Maybe.map (\f -> { scaled | strokeWidth = f }) |> Maybe.withDefault scaled
-
-        dragged =
-            String.toFloat ds.dragStepCurrent |> Maybe.map (\f -> { stroked | dragStep = f }) |> Maybe.withDefault stroked
-
-        withCurrent =
-            { dragged | strokeWidthCurrent = ds.strokeWidthCurrent, dragStepCurrent = ds.dragStepCurrent }
+        updated =
+            scaled
+                |> (\settings -> Maybe.withDefault settings (String.toFloat ds.strokeWidthCurrent |> Maybe.map (\f -> { settings | strokeWidth = f })))
+                |> (\settings -> Maybe.withDefault settings (String.toFloat ds.dragStepCurrent |> Maybe.map (\f -> { settings | dragStep = f })))
+                |> (\settings -> Maybe.withDefault settings (String.toFloat ds.zoomStepCurrent |> Maybe.map (\f -> { settings | zoomStep = f })))
+                |> (\settings -> { settings | strokeWidthCurrent = ds.strokeWidthCurrent, dragStepCurrent = ds.dragStepCurrent, zoomStepCurrent = ds.zoomStepCurrent })
     in
-    { model | developmentSettings = withCurrent }
+    { model | developmentSettings = updated }
 
 
 zoomBy : Float -> Model -> Model
@@ -420,7 +425,7 @@ development_settings model =
         [ image_scaling_slider model.developmentSettings
         , stroke_width_field model
         , drag_step_width_field model
-        , zoom_step_field model.developmentSettings
+        , zoom_step_field model
         , image_controls model
         ]
 
@@ -454,17 +459,19 @@ mouse_wheel_event_listener model =
         )
 
 
-zoom_step_field : DevelopmentSettings -> E.Element Msg
-zoom_step_field devSettings =
+zoom_step_field : Model -> E.Element Msg
+zoom_step_field model =
+    let
+        current =
+            model.developmentSettings
+    in
     EI.text []
         { label = EI.labelRight [ E.alignRight ] (E.text "Zoom step")
         , placeholder = Nothing
-        , text = String.fromFloat devSettings.zoomStep
+        , text = current.zoomStepCurrent
         , onChange =
             \s ->
-                String.toFloat s
-                    |> Maybe.map (\f -> ChangeDevSettings { devSettings | zoomStep = f })
-                    |> Maybe.withDefault (ChangeDevSettings devSettings)
+                ChangeDevSettings { current | zoomStepCurrent = s }
         }
 
 
