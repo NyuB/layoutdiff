@@ -17,7 +17,7 @@ import Qol.Cycle as Cycle exposing (Cycle)
 import String exposing (fromFloat)
 import Svg
 import Svg.Attributes as SvgAttr
-import Visibility exposing (Visibility(..), content, isVisible, toggle)
+import Visibility exposing (Visibility(..), content, isHighlighted, isVisible, toggle)
 
 
 main : Program Flags Model Msg
@@ -278,7 +278,19 @@ update msg model =
 
 toggled_image : Model -> Maybe (Visibility ImageSpec)
 toggled_image model =
-    model.image |> Maybe.map (\i -> toggle i)
+    model.image
+        |> Maybe.map
+            (\i ->
+                case i of
+                    Hidden img ->
+                        Visible img
+
+                    Visible img ->
+                        Hidden img
+
+                    Highlighted img ->
+                        Hidden img
+            )
 
 
 toggled_extra : Model -> Int -> Model
@@ -358,17 +370,17 @@ drag ( tracker, move ) model =
 -- view
 
 
-triforce_color : Triforce -> E.Color
+triforce_color : Triforce -> ( Int, Int, Int )
 triforce_color t =
     case t of
         Expected ->
-            rgb255 expected_color
+            expected_color
 
         Actual ->
-            rgb255 actual_color
+            actual_color
 
         Diff ->
-            rgb255 diff_color
+            diff_color
 
 
 triforce_label : Triforce -> String
@@ -384,13 +396,17 @@ triforce_label t =
             "Diff"
 
 
-toggle_show_hide_label : Bool -> String
-toggle_show_hide_label visible =
-    if visible then
-        "(hide)"
+toggle_visibility_label : Visibility a -> String
+toggle_visibility_label visible =
+    case visible of
+        Visible _ ->
+            "(click to hide)"
 
-    else
-        "(show)"
+        Hidden _ ->
+            "(click to show)"
+
+        Highlighted _ ->
+            "(click to stroke)"
 
 
 image_controls : Model -> E.Element Msg
@@ -536,20 +552,39 @@ sliderTrack =
         )
 
 
-toggle_contour_button : Triforce -> Bool -> E.Element Msg
-toggle_contour_button t v =
+toggle_contour_button : Visibility Triforce -> E.Element Msg
+toggle_contour_button v =
     let
+        t =
+            content v
+
         label =
-            spaced [ triforce_label t, toggle_show_hide_label v ]
+            spaced [ triforce_label t, toggle_visibility_label v ]
+
+        color =
+            triforce_color t
     in
-    EI.button (bordered [ EB.color (triforce_color t) ]) { onPress = Just (ToggleContour t), label = E.text label }
+    EI.button (bordered [ EB.color (rgb255 color), visibility_button_background v color ]) { onPress = Just (ToggleContour t), label = E.text label }
 
 
-toggle_image_button : Bool -> E.Element Msg
+visibility_button_background : Visibility a -> ( Int, Int, Int ) -> E.Attr decorative Msg
+visibility_button_background v ( r, g, b ) =
+    case v of
+        Visible _ ->
+            EBack.color (E.rgba255 r g b 0.1)
+
+        Hidden _ ->
+            EBack.color (E.rgba255 25 25 25 0.1)
+
+        Highlighted _ ->
+            EBack.color (E.rgba255 r g b 0.7)
+
+
+toggle_image_button : Visibility img -> E.Element Msg
 toggle_image_button v =
     let
         label =
-            "Image " ++ toggle_show_hide_label v
+            "Image " ++ toggle_visibility_label v
     in
     EI.button (bordered [ EB.color (E.rgb255 0 0 0) ]) { onPress = Just ToggleImage, label = E.text label }
 
@@ -557,9 +592,9 @@ toggle_image_button v =
 toggle_buttons : Model -> E.Element Msg
 toggle_buttons model =
     E.column (bordered [ E.spacing 10 ])
-        ([ toggle_contour_button Expected (isVisible model.expected)
-         , toggle_contour_button Actual (isVisible model.actual)
-         , toggle_contour_button Diff (isVisible model.diff)
+        ([ toggle_contour_button (model.expected |> Visibility.map (\_ -> Expected))
+         , toggle_contour_button (model.actual |> Visibility.map (\_ -> Actual))
+         , toggle_contour_button (model.diff |> Visibility.map (\_ -> Diff))
          ]
             ++ toggle_image_buttons model
             ++ toggle_extra_buttons model
@@ -568,19 +603,19 @@ toggle_buttons model =
 
 toggle_image_buttons : Model -> List (E.Element Msg)
 toggle_image_buttons model =
-    model.image |> Maybe.map (\img -> [ toggle_image_button (isVisible img) ]) |> Maybe.withDefault []
+    model.image |> Maybe.map (\img -> [ toggle_image_button img ]) |> Maybe.withDefault []
 
 
 toggle_extra_button : Int -> ( String, Visibility a ) -> E.Element Msg
 toggle_extra_button i ( n, v ) =
     let
         label =
-            spaced [ n, toggle_show_hide_label (isVisible v) ]
+            spaced [ n, toggle_visibility_label v ]
 
         color =
             Cycle.get i extra_colors
     in
-    EI.button (bordered [ EB.color (rgb255 color) ]) { onPress = Just (ToggleExtra i), label = E.text label }
+    EI.button (bordered [ EB.color (rgb255 color), visibility_button_background v color ]) { onPress = Just (ToggleExtra i), label = E.text label }
 
 
 toggle_extra_buttons : Model -> List (E.Element Msg)
@@ -708,8 +743,15 @@ svg_path_of_visible stroke_width ( contour_visibility, color ) =
             else
                 SvgAttr.strokeOpacity "0.0"
 
+        fill_visibility =
+            if isHighlighted contour_visibility then
+                SvgAttr.fillOpacity "0.15"
+
+            else
+                SvgAttr.fillOpacity "0.0"
+
         base =
-            [ SvgAttr.stroke (svg255 color), SvgAttr.fillOpacity "0.0", SvgAttr.strokeWidth (String.fromFloat stroke_width), stroke_visibility ]
+            [ SvgAttr.stroke (svg255 color), SvgAttr.fill (svg255 color), fill_visibility, SvgAttr.strokeWidth (String.fromFloat stroke_width), stroke_visibility ]
 
         contour =
             content contour_visibility

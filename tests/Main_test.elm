@@ -47,6 +47,8 @@ html_tests =
     , svg_path_referential_change
     , svg_path_zoom
     , svg_path_hidden
+    , svg_path_visible
+    , svg_path_highlighted
     ]
 
 
@@ -72,37 +74,82 @@ visibility_tests =
     , ( "Toggle expected visibility"
       , \_ ->
             let
-                ( updated, _ ) =
-                    update (ToggleContour Expected) init_some
+                initial =
+                    init_some
+
+                toggled =
+                    update (ToggleContour Expected) initial |> Tuple.first
+
+                toggledTwice =
+                    update (ToggleContour Expected) toggled |> Tuple.first
+
+                toggledThrice =
+                    update (ToggleContour Expected) toggledTwice |> Tuple.first
             in
-            Expect.equal updated.expected (Hidden (content init_some.expected))
+            Expect.all
+                [ \_ -> Expect.equal toggled.expected (Hidden (content init_some.expected))
+                , \_ -> Expect.equal toggledTwice.expected (Highlighted (content init_some.expected))
+                , \_ -> Expect.equal toggledThrice.expected (Visible (content init_some.expected))
+                ]
+                ()
       )
     , ( "Toggle actual visibility"
-      , \_ ->
-            let
-                ( updated, _ ) =
-                    update (ToggleContour Actual) init_some
-            in
-            Expect.equal updated.actual (Hidden (content init_some.actual))
-      )
-    , ( "Toggle diff visibility"
-      , \_ ->
-            let
-                ( updated, _ ) =
-                    update (ToggleContour Diff) init_some
-            in
-            Expect.equal updated.diff (Hidden (content init_some.diff))
-      )
-    , ( "Toggle image visibility"
       , \_ ->
             let
                 initial =
                     init_some
 
-                ( updated, _ ) =
-                    update ToggleImage initial
+                toggled =
+                    update (ToggleContour Actual) initial |> Tuple.first
+
+                toggledTwice =
+                    update (ToggleContour Actual) toggled |> Tuple.first
+
+                toggledThrice =
+                    update (ToggleContour Actual) toggledTwice |> Tuple.first
             in
-            Expect.equal [ True, False ] (visibility_presence [ initial.image, updated.image ])
+            Expect.all
+                [ \_ -> Expect.equal toggled.actual (Hidden (content init_some.actual))
+                , \_ -> Expect.equal toggledTwice.actual (Highlighted (content init_some.actual))
+                , \_ -> Expect.equal toggledThrice.actual (Visible (content init_some.actual))
+                ]
+                ()
+      )
+    , ( "Toggle diff visibility"
+      , \_ ->
+            let
+                initial =
+                    init_some
+
+                toggled =
+                    update (ToggleContour Diff) initial |> Tuple.first
+
+                toggledTwice =
+                    update (ToggleContour Diff) toggled |> Tuple.first
+
+                toggledThrice =
+                    update (ToggleContour Diff) toggledTwice |> Tuple.first
+            in
+            Expect.all
+                [ \_ -> Expect.equal toggled.diff (Hidden (content init_some.diff))
+                , \_ -> Expect.equal toggledTwice.diff (Highlighted (content init_some.diff))
+                , \_ -> Expect.equal toggledThrice.diff (Visible (content init_some.diff))
+                ]
+                ()
+      )
+    , ( "Toggle image visibility (either hide or show, no highlight)"
+      , \_ ->
+            let
+                initial =
+                    init_some
+
+                toggled =
+                    update ToggleImage initial |> Tuple.first
+
+                toggledTwice =
+                    update ToggleImage toggled |> Tuple.first
+            in
+            Expect.equal [ True, False, True ] (visibility_presence [ initial.image, toggled.image, toggledTwice.image ])
       )
     , ( "If init flags are passed, components are visible from start"
       , \_ ->
@@ -231,7 +278,7 @@ svg_path_zoom =
 
 svg_path_hidden : Quick_test
 svg_path_hidden =
-    ( "Hidden contours' path have opacity zero"
+    ( "Hidden contours' paths have opacity zero"
     , \_ ->
         let
             hide_diff_contour =
@@ -247,6 +294,52 @@ svg_path_hidden =
         Expect.all
             [ HQ.findAll [ tag "path" ] >> HQ.count (Expect.equal 1)
             , HQ.find [ tag "path" ] >> HQ.has [ html_attribute "stroke-opacity" "0.0" ]
+            ]
+            v
+    )
+
+
+svg_path_highlighted : Quick_test
+svg_path_highlighted =
+    ( "Highlighted contours' paths have fill opacity non-zero"
+    , \_ ->
+        let
+            highlight_diff_contour =
+                init_two_points_in_diff ( 0, 0 ) ( 10, 10 )
+                    |> Main.update (ToggleContour Diff)
+                    |> Tuple.first
+                    |> Main.update (ToggleContour Diff)
+                    |> Tuple.first
+
+            v =
+                view highlight_diff_contour |> HQ.fromHtml
+
+            -- 1 in expected, 1 in actual, 1 in diff, 2 in one extra
+        in
+        Expect.all
+            [ HQ.findAll [ tag "path" ] >> HQ.count (Expect.equal 1)
+            , HQ.find [ tag "path" ] >> HQ.has [ html_attribute "stroke-opacity" "1.0", html_attribute "fill-opacity" "0.15" ]
+            ]
+            v
+    )
+
+
+svg_path_visible : Quick_test
+svg_path_visible =
+    ( "Visible but non highlighted contours' paths have fill opacity zero and stroke width non zero"
+    , \_ ->
+        let
+            highlight_diff_contour =
+                init_two_points_in_diff ( 0, 0 ) ( 10, 10 )
+
+            v =
+                view highlight_diff_contour |> HQ.fromHtml
+
+            -- 1 in expected, 1 in actual, 1 in diff, 2 in one extra
+        in
+        Expect.all
+            [ HQ.findAll [ tag "path" ] >> HQ.count (Expect.equal 1)
+            , HQ.find [ tag "path" ] >> HQ.has [ html_attribute "stroke-opacity" "1.0", html_attribute "fill-opacity" "0.0" ]
             ]
             v
     )
