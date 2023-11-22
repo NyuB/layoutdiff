@@ -1,4 +1,4 @@
-module Init exposing (ImageSpec, Init, decode, encode)
+module Init exposing (ImageSpec, Init, InitContour, decode, encode)
 
 import Dict
 import Json.Decode as D
@@ -11,10 +11,10 @@ import Json.Encode as E
 
 type alias Init =
     { image : Maybe ImageSpec
-    , expected : List (List ( Float, Float ))
-    , actual : List (List ( Float, Float ))
-    , diff : List (List ( Float, Float ))
-    , extras : List ( String, List (List ( Float, Float )) )
+    , expected : InitContour
+    , actual : InitContour
+    , diff : InitContour
+    , extras : List ( String, InitContour )
     }
 
 
@@ -29,14 +29,13 @@ type alias ImageSpec =
     }
 
 
+type alias InitContour =
+    List (List ( Float, Float ))
+
+
 decode : D.Decoder Init
 decode =
-    D.map5 Init
-        (maybe_nullable "image" decode_image_spec)
-        (D.field "expected" decode_contour)
-        (D.field "actual" decode_contour)
-        (D.field "diff" decode_contour)
-        (maybe_nullable "extras" decode_named_contours |> with_default [])
+    D.oneOf [ decode_v1, decode_v2 ]
 
 
 encode : Init -> E.Value
@@ -54,6 +53,72 @@ encode i =
 -- internals
 
 
+type alias NamedContour =
+    { name : String
+    , shapes : InitContour
+    }
+
+
+decode_v1 : D.Decoder Init
+decode_v1 =
+    D.map5 Init
+        (maybe_nullable "image" decode_image_spec)
+        (D.field "expected" decode_contour)
+        (D.field "actual" decode_contour)
+        (D.field "diff" decode_contour)
+        (maybe_nullable "extras" decode_named_contours |> with_default [])
+
+
+decode_v2 : D.Decoder Init
+decode_v2 =
+    D.map2
+        (\img contours ->
+            { image = img
+            , expected = find_named_contour_or_empty contours "expected"
+            , actual = find_named_contour_or_empty contours "actual"
+            , diff = find_named_contour_or_empty contours "diff"
+            , extras = without_named_contours contours [ "expected", "actual", "diff" ]
+            }
+        )
+        (maybe_nullable "image" decode_image_spec)
+        (D.field "contours" (D.list decode_named_contour_object))
+
+
+find_named_contour_or_empty : List NamedContour -> String -> InitContour
+find_named_contour_or_empty l n =
+    List.filterMap
+        (\nc ->
+            if nc.name == n then
+                Just nc.shapes
+
+            else
+                Nothing
+        )
+        l
+        |> List.head
+        |> Maybe.withDefault []
+
+
+without_named_contours : List NamedContour -> List String -> List ( String, InitContour )
+without_named_contours l names =
+    List.filterMap
+        (\nc ->
+            if List.member nc.name names then
+                Nothing
+
+            else
+                Just ( nc.name, nc.shapes )
+        )
+        l
+
+
+decode_named_contour_object : D.Decoder NamedContour
+decode_named_contour_object =
+    D.map2 NamedContour
+        (D.field "name" D.string)
+        (D.field "shapes" decode_contour)
+
+
 decode_image_spec : D.Decoder ImageSpec
 decode_image_spec =
     D.map7 ImageSpec
@@ -66,27 +131,27 @@ decode_image_spec =
         (float_field "pixelHeight")
 
 
-decode_named_contours : D.Decoder (List ( String, List (List ( Float, Float )) ))
+decode_named_contours : D.Decoder (List ( String, InitContour ))
 decode_named_contours =
     D.oneOf [ decode_named_contour_dict, decode_named_contour_list ]
 
 
-decode_named_contour_list : D.Decoder (List ( String, List (List ( Float, Float )) ))
+decode_named_contour_list : D.Decoder (List ( String, InitContour ))
 decode_named_contour_list =
     D.list decode_named_contour
 
 
-decode_named_contour_dict : D.Decoder (List ( String, List (List ( Float, Float )) ))
+decode_named_contour_dict : D.Decoder (List ( String, InitContour ))
 decode_named_contour_dict =
     D.dict decode_contour |> D.map Dict.toList
 
 
-decode_named_contour : D.Decoder ( String, List (List ( Float, Float )) )
+decode_named_contour : D.Decoder ( String, InitContour )
 decode_named_contour =
     D.map2 (\n c -> ( n, c )) (D.index 0 D.string) (D.index 1 decode_contour)
 
 
-decode_contour : D.Decoder (List (List ( Float, Float )))
+decode_contour : D.Decoder InitContour
 decode_contour =
     D.list decode_shape
 
@@ -101,7 +166,7 @@ decode_point =
     D.map2 (\x y -> ( x, y )) (D.index 0 D.float) (D.index 1 D.float)
 
 
-encode_contour : List (List ( Float, Float )) -> E.Value
+encode_contour : InitContour -> E.Value
 encode_contour c =
     E.list encode_shape c
 
@@ -116,12 +181,12 @@ encode_point ( x, y ) =
     E.list E.float [ x, y ]
 
 
-encode_named_contours : List ( String, List (List ( Float, Float )) ) -> E.Value
+encode_named_contours : List ( String, InitContour ) -> E.Value
 encode_named_contours nc =
     E.list encode_named_contour nc
 
 
-encode_named_contour : ( String, List (List ( Float, Float )) ) -> E.Value
+encode_named_contour : ( String, InitContour ) -> E.Value
 encode_named_contour ( name, contour ) =
     E.list
         encode_string_or_contour
@@ -132,7 +197,7 @@ encode_named_contour ( name, contour ) =
 -}
 type SC
     = S String
-    | C (List (List ( Float, Float )))
+    | C InitContour
 
 
 encode_string_or_contour : SC -> E.Value

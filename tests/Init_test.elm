@@ -22,6 +22,8 @@ suite =
             \_ -> raw_decode valid_without_extras |> Result.map (\i -> i.extras) |> Expect.equal (Ok [])
         , test "Json extras can be passed as a dictionary" <|
             \_ -> raw_decode valid_dict_extras |> Result.map (\i -> i.extras) |> Expect.equal (Ok [ ( "A", [] ), ( "B", [] ) ])
+        , test "Can decode v2 with no notion of expected/actual/diff" <|
+            \_ -> raw_decode valid_no_distinction |> Expect.equal (Ok decoded_nominal)
         ]
 
 
@@ -85,6 +87,20 @@ valid_dict_extras =
     """{ 
     "image": { "url": "http://some/url", "width": 1, "height": 1, "refX": 0.0, "refY": 0.0, "pixelWidth": 1.5, "pixelHeight": 1.5 }
     , "expected": [], "actual": [], "diff": [], "extras": { "A": [], "B": [] }
+    }"""
+
+
+valid_no_distinction : String
+valid_no_distinction =
+    """{ 
+    "image": { "url": "http://some/url", "width": 1, "height": 1, "refX": 0.0, "refY": 0.0, "pixelWidth": 1.5, "pixelHeight": 1.5 }
+    , "contours": [
+        { "name": "expected", "shapes": [[[0.1, 0.2]]] }
+        , { "name": "actual", "shapes": [ [[0.3, 0.4], [0.3, 0.4]], [[0.5, 0.6]] ] }
+        , { "name": "diff", "shapes": [ [[0.7, 0.8], [0.9, 1.0]], [] ] }
+        , { "name": "A", "shapes": [[[1.1, 1.2]]] }
+        , { "name": "B", "shapes": [] }
+        ]
     }"""
 
 
