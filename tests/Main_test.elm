@@ -49,6 +49,7 @@ html_tests =
     , svg_path_hidden
     , svg_path_visible
     , svg_path_highlighted
+    , svg_image_scale_with_pixel_width
     ]
 
 
@@ -345,6 +346,23 @@ svg_path_visible =
     )
 
 
+svg_image_scale_with_pixel_width : Quick_test
+svg_image_scale_with_pixel_width =
+    ( "Svg <image/> section has width adapted to image pixel height and width"
+    , \_ ->
+        let
+            model =
+                Main.init (just_flags test_flags_with_pixel_sizes) |> Tuple.first
+
+            v =
+                view model |> HQ.fromHtml
+        in
+        Expect.all
+            [ HQ.find [ tag "image" ] >> HQ.has [ html_attribute "width" "5", html_attribute "height" "30" ] ]
+            v
+    )
+
+
 
 -- helpers
 
@@ -425,9 +443,23 @@ type alias ExtraFlagContour =
     ( String, FlagContour )
 
 
+test_image : { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }
+test_image =
+    { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }
+
+
 test_flags : { image : Maybe { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : FlagContour, actual : FlagContour, diff : FlagContour, extras : List ExtraFlagContour }
 test_flags =
-    { image = Just { url = "test.jpg", width = 10, height = 20, refX = 0.0, refY = 0.0, pixelWidth = 1.0, pixelHeight = 1.0 }, expected = [ [] ], actual = [ [] ], diff = [ [] ], extras = [] }
+    { image = Just test_image, expected = [ [] ], actual = [ [] ], diff = [ [] ], extras = [] }
+
+
+test_flags_with_pixel_sizes : { image : Maybe { url : String, width : number, height : number, refX : Float, refY : Float, pixelWidth : Float, pixelHeight : Float }, expected : FlagContour, actual : FlagContour, diff : FlagContour, extras : List ExtraFlagContour }
+test_flags_with_pixel_sizes =
+    let
+        image =
+            { test_image | pixelWidth = 0.5, pixelHeight = 1.5 }
+    in
+    { test_flags | image = Just image }
 
 
 init_some_no_image : Main.Model

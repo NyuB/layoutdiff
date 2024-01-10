@@ -682,7 +682,7 @@ svg_viewport_pixel_dimensions model =
         h =
             min svg_window_height_px (imgHeight model * model.developmentSettings.imageScaling)
     in
-    [ svg_width w, svg_height h ]
+    [ svg_width (toFloat w), svg_height (toFloat h) ]
 
 
 svg_viewport : Model -> List (Svg.Attribute Msg)
@@ -695,14 +695,14 @@ svg_image_link img =
     SvgAttr.xlinkHref img.url
 
 
-svg_width : Int -> Svg.Attribute msg
+svg_width : Float -> Svg.Attribute msg
 svg_width w =
-    SvgAttr.width (String.fromInt w)
+    SvgAttr.width (String.fromFloat w)
 
 
-svg_height : Int -> Svg.Attribute msg
+svg_height : Float -> Svg.Attribute msg
 svg_height h =
-    SvgAttr.height (String.fromInt h)
+    SvgAttr.height (String.fromFloat h)
 
 
 svg_x : Float -> Svg.Attribute msg
@@ -735,7 +735,7 @@ svg_image model =
         |> Maybe.map content
         |> Maybe.map
             (\img ->
-                [ Svg.image [ svg_image_link img, SvgAttr.opacity "1.0", svg_x img.refX, svg_y img.refY, svg_width img.width, svg_height img.height ] [] ]
+                [ Svg.image [ svg_image_link img, SvgAttr.opacity "1.0", svg_x img.refX, svg_y img.refY, svg_width (toFloat img.width * img.pixelWidth), svg_height (toFloat img.height * img.pixelHeight) ] [] ]
             )
         |> Maybe.withDefault []
 
