@@ -14,17 +14,21 @@ type alias Area =
     }
 
 
-{-| Represents a zomm on a given original area
+{-| Represents a zoom on a given original area
 -}
 type ZoomedArea
     = ZoomedArea { full : Area, zoomed : Area }
 
 
+{-| Maximal zoom value that would not make the area disappear
+-}
 maxZoom : ZoomedArea -> Float
 maxZoom zoomedArea =
     min (zoomedWidth zoomedArea) (zoomedHeight zoomedArea) / 2.0
 
 
+{-| Returned the application of the given zoom value to the already zoomed area. If the zoom value is negative, the area is expanded. If the zoom value is positive, the area is shrunk. Zooming by 0 is a no-op.
+-}
 zoom : Float -> ZoomedArea -> ZoomedArea
 zoom by (ZoomedArea z) =
     let
@@ -58,6 +62,8 @@ full (ZoomedArea z) =
     z.full
 
 
+{-| Lift an initial area to a zoomable version, with the zoomed area initially equal to the given area
+-}
 initZoom : Area -> ZoomedArea
 initZoom area =
     ZoomedArea { full = area, zoomed = area }
