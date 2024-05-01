@@ -1,4 +1,4 @@
-module Area exposing (Area, Point, ReferentialOrigin(..), ZoomedArea, expand_by, expand_for_point, full, horizontal_shift, initZoom, min_area, point, point_x, point_y, shift_origin, shrink_by, translate_point_to_referential, vertical_shift, zero, zoom, zoomed)
+module Area exposing (Area, Point, ReferentialOrigin(..), ZoomedArea, expand_by, expand_for_point, full, horizontal_shift, initZoom, maxZoom, min_area, point, point_x, point_y, shift_origin, shrink_by, translate_point_to_referential, vertical_shift, zero, zoom, zoomed)
 
 
 type Point
@@ -18,6 +18,11 @@ type alias Area =
 -}
 type ZoomedArea
     = ZoomedArea { full : Area, zoomed : Area }
+
+
+maxZoom : ZoomedArea -> Float
+maxZoom zoomedArea =
+    min (zoomedWidth zoomedArea) (zoomedHeight zoomedArea) / 2.0
 
 
 zoom : Float -> ZoomedArea -> ZoomedArea
@@ -252,3 +257,13 @@ revert_y maxY p =
 revert_x : Float -> Point -> Point
 revert_x maxX p =
     point (maxX - point_x p) (point_y p)
+
+
+zoomedWidth : ZoomedArea -> Float
+zoomedWidth (ZoomedArea zoomedArea) =
+    zoomedArea.zoomed.width
+
+
+zoomedHeight : ZoomedArea -> Float
+zoomedHeight (ZoomedArea zoomedArea) =
+    zoomedArea.zoomed.height

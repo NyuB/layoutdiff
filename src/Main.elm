@@ -86,6 +86,16 @@ svg255 ( r, g, b ) =
     "rgb(" ++ (String.join "," <| List.map String.fromInt [ r, g, b ]) ++ ")"
 
 
+zoom_factor : Float
+zoom_factor =
+    0.05
+
+
+drag_factor : Float
+drag_factor =
+    0.005
+
+
 
 -- model
 
@@ -114,10 +124,6 @@ type alias DevelopmentSettings =
     { imageScaling : Int
     , strokeWidth : Float
     , strokeWidthCurrent : String
-    , zoomStep : Float
-    , zoomStepCurrent : String
-    , dragStep : Float
-    , dragStepCurrent : String
     }
 
 
@@ -174,9 +180,52 @@ init_image_view =
     { shiftX = 0.0, shiftY = 0.0 }
 
 
-init_dev_settings : DevelopmentSettings
-init_dev_settings =
-    { imageScaling = 1, strokeWidth = 0.1, strokeWidthCurrent = "0.1", zoomStep = 2, zoomStepCurrent = "2.0", dragStep = 0.25, dragStepCurrent = "0.25" }
+init_dev_settings : Maybe Init -> DevelopmentSettings
+init_dev_settings flags =
+    flags
+        |> Maybe.map dev_settings_from_init
+        |> Maybe.withDefault
+            { imageScaling = 1, strokeWidth = 0.1, strokeWidthCurrent = "0.1" }
+
+
+dev_settings_from_init : Init -> DevelopmentSettings
+dev_settings_from_init flags =
+    let
+        ( ( minX, minY ), ( maxX, maxY ) ) =
+            extremas flags
+
+        ( dx, dy ) =
+            ( maxX - minX, maxY - minY )
+
+        dist =
+            sqrt (dx * dx + dy * dy)
+
+        dist_1000 =
+            dist / 1000
+    in
+    { imageScaling = 1, strokeWidth = dist_1000, strokeWidthCurrent = fromFloat dist_1000 }
+
+
+all_points : Init -> List ( Float, Float )
+all_points flags =
+    List.concatMap List.concat [ flags.actual, flags.expected, flags.diff ]
+
+
+extremas : Init -> ( ( Float, Float ), ( Float, Float ) )
+extremas flags =
+    all_points flags
+        |> List.foldl
+            (\( x, y ) acc ->
+                acc
+                    |> Maybe.map
+                        (\( ( minX, minY ), ( maxX, maxY ) ) ->
+                            ( ( min x minX, min y minY ), ( max x maxX, max y maxY ) )
+                        )
+                    |> Maybe.withDefault ( ( x, y ), ( x, y ) )
+                    |> Just
+            )
+            Nothing
+        |> Maybe.withDefault ( ( 0, 0 ), ( 0, 0 ) )
 
 
 init : Flags -> ( Model, Cmd.Cmd Msg )
@@ -210,7 +259,7 @@ init flags =
       , image = image
       , imageFraming = init_image_view
       , contoursReferential = TopLeft
-      , developmentSettings = init_dev_settings
+      , developmentSettings = init_dev_settings decoded
       , zoomedArea = zoomedArea
       , mouseDragTracker = Components.initMouseDragTracker
       }
@@ -335,9 +384,7 @@ changedDevSettings ds model =
         updated =
             scaled
                 |> (\settings -> Maybe.withDefault settings (String.toFloat ds.strokeWidthCurrent |> Maybe.map (\f -> { settings | strokeWidth = f })))
-                |> (\settings -> Maybe.withDefault settings (String.toFloat ds.dragStepCurrent |> Maybe.map (\f -> { settings | dragStep = f })))
-                |> (\settings -> Maybe.withDefault settings (String.toFloat ds.zoomStepCurrent |> Maybe.map (\f -> { settings | zoomStep = f })))
-                |> (\settings -> { settings | strokeWidthCurrent = ds.strokeWidthCurrent, dragStepCurrent = ds.dragStepCurrent, zoomStepCurrent = ds.zoomStepCurrent })
+                |> (\settings -> { settings | strokeWidthCurrent = ds.strokeWidthCurrent })
     in
     { model | developmentSettings = updated }
 
@@ -363,12 +410,17 @@ drag ( tracker, move ) model =
                     model.imageFraming
 
                 step =
-                    model.developmentSettings.dragStep
+                    dragStep model
 
                 dragged =
                     { img | shiftX = img.shiftX - x * step, shiftY = img.shiftY - y * step }
             in
             { model | mouseDragTracker = tracker, imageFraming = dragged }
+
+
+dragStep : Model -> Float
+dragStep model =
+    Area.maxZoom model.zoomedArea * drag_factor
 
 
 
@@ -424,8 +476,6 @@ development_settings model =
     E.column (bordered [ E.width E.fill, E.spacing 10, E.above (E.el [ E.padding 5 ] (E.text "Development settings")) ])
         [ image_scaling_slider model.developmentSettings
         , stroke_width_field model
-        , drag_step_width_field model
-        , zoom_step_field model
         , image_controls model
         ]
 
@@ -447,7 +497,7 @@ mouse_wheel_event_listener : Model -> Components.CustomEvent Msg
 mouse_wheel_event_listener model =
     let
         step =
-            model.developmentSettings.zoomStep
+            zoomStep model
     in
     Components.mouse_wheel_listener
         (\f ->
@@ -459,20 +509,9 @@ mouse_wheel_event_listener model =
         )
 
 
-zoom_step_field : Model -> E.Element Msg
-zoom_step_field model =
-    let
-        current =
-            model.developmentSettings
-    in
-    EI.text []
-        { label = EI.labelRight [ E.alignRight ] (E.text "Zoom step")
-        , placeholder = Nothing
-        , text = current.zoomStepCurrent
-        , onChange =
-            \s ->
-                ChangeDevSettings { current | zoomStepCurrent = s }
-        }
+zoomStep : Model -> Float
+zoomStep model =
+    Area.maxZoom model.zoomedArea * zoom_factor
 
 
 stroke_width_field : Model -> E.Element Msg
@@ -487,21 +526,6 @@ stroke_width_field model =
         , text = current.strokeWidthCurrent
         , placeholder = Nothing
         , label = EI.labelRight [ E.alignRight ] (E.text "Stroke width")
-        }
-
-
-drag_step_width_field : Model -> E.Element Msg
-drag_step_width_field model =
-    let
-        current =
-            model.developmentSettings
-    in
-    EI.text []
-        { onChange =
-            \t -> ChangeDevSettings { current | dragStepCurrent = t }
-        , text = current.dragStepCurrent
-        , placeholder = Nothing
-        , label = EI.labelRight [ E.alignRight ] (E.text "Drag step")
         }
 
 
