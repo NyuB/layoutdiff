@@ -1,0 +1,21 @@
+{
+    "image": {
+        "url": "camel.jpg"
+        , "width": 220
+        , "height": 271
+        , "refX": 0.0
+        , "refY": 0.0
+        , "pixelWidth": 10.0
+        , "pixelHeight": 10.0
+    }
+    , "expected": [
+        [[5, 5], [10,10], [5, 10]]
+    ]
+    , "actual": [
+        [[2000, 2000], [2100, 2100], [2100, 2000]]
+    ]
+    , "diff": [
+        []
+    ]
+    , "extras": { }
+}
