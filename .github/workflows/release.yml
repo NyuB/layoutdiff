@@ -1,4 +1,4 @@
-name: Site snapshot release
+name: Release
 
 on:
   workflow_dispatch:
