@@ -86,14 +86,18 @@ svg255 ( r, g, b ) =
     "rgb(" ++ (String.join "," <| List.map String.fromInt [ r, g, b ]) ++ ")"
 
 
+{-| Expressed in fraction of Area.maxZoom
+-}
 zoom_factor : Float
 zoom_factor =
     0.05
 
 
+{-| Expressed in fraction of zoomedArea minimal dimension
+-}
 drag_factor : Float
 drag_factor =
-    0.005
+    0.001
 
 
 
@@ -420,7 +424,11 @@ drag ( tracker, move ) model =
 
 dragStep : Model -> Float
 dragStep model =
-    Area.maxZoom model.zoomedArea * drag_factor
+    let
+        zoomedArea =
+            Area.zoomed model.zoomedArea
+    in
+    min zoomedArea.height zoomedArea.width * drag_factor
 
 
 
