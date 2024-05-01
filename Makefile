@@ -3,7 +3,7 @@ default: fmt test review-check build
 build: page/main.js
 
 page/main.js: src/*.elm
-	elm make --output page/main.js src/Main.elm
+	elm make --optimize --output page/main.js src/Main.elm
 
 review-fix:
 	elm-review --fix
